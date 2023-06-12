@@ -34,16 +34,16 @@ export default async function (req, res) {
 
         let prompts = generateObserverPrompt(messages, stateData);
 
-        console.log("observer prompts:\n" + prompts);
+        console.log("observer prompts:\n" + prompts + "\nend.");
 
         const completion = await openai.createCompletion({
             //model: "text-babbage-001",
             model: "text-curie-001",
             prompt: prompts,
-            temperature: 0.2,
+            temperature: 0.0,
         });
 
-        console.log("observer responseMessage:\n" + JSON.stringify(completion.data));
+        console.log("observer responseMessage:\n" + JSON.stringify(completion.data) + "\nend.");
 
         const responseMessage = completion.data.choices[0].text;
 
@@ -104,7 +104,7 @@ function generateObserverPrompt(messages, stateData) {
     console.log(dialog);
 
     let template = `Conversation:\n${dialog}\n\n`
-        + `From the conversation, find the real data and print as a list only if found: ${missingLabels}.\nDo not generate additional data. Found list:\n`;
+        + `From the conversation, find the real data and print as a key value list: ${missingLabels}.\nDo not generate additional data. Data list:\n`;
 
     return template;
 }

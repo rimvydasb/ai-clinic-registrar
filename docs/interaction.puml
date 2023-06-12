@@ -1,0 +1,115 @@
+@startuml
+title Simple Conversation Loop
+footer \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tby @rimvydasb
+
+legend
+    User: human
+    StateManager: for a demo purpose it can be NodeJS and React
+    Observer: text-babbage-001, text-curie-001 or similar LLM model
+    Questioner: GPT-3.5-turbo or pretrained LLM
+    Database: any file storage
+endlegend
+
+actor User
+actor StateManager
+actor Observer
+actor Questioner
+actor Database
+
+activate User
+activate StateManager
+User -> StateManager : enters site
+User <-- StateManager : chat page with a greeting
+loop state final == false
+    User -> StateManager : sends\n(message)
+
+    StateManager -> Observer : label answers\n(chat history, state data, observer system prompts)
+    activate Observer
+    Observer --> StateManager : labeled answers
+    deactivate Observer
+
+    StateManager -> StateManager : update state data\n(old state data, labeled answers)
+
+    alt state final == false
+        StateManager -> StateManager : get questioner system prompts\n(state data)
+        StateManager -> Questioner : get next question\n(chat history, questioner system prompts)
+        activate Questioner
+        Questioner --> StateManager : question
+        deactivate Questioner
+        StateManager --> User : question
+    end
+end
+StateManager -> StateManager : get goodbye system prompts\n(state data)
+StateManager -> Questioner : get next question\n(goodbye system prompts)
+activate Questioner
+Questioner --> StateManager : question
+deactivate Questioner
+StateManager -> Database : register client\n(state data)
+StateManager <-- Database : registration voucher
+StateManager -> User : goodbye message\nand registration voucher
+@enduml
+
+@startuml
+title Simplified Conversation Loop
+footer \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tby @rimvydasb
+
+actor User
+actor StateManager
+actor Observer
+actor Questioner
+actor Database
+
+activate User
+activate StateManager
+User -> StateManager : enters site
+User <-- StateManager : chat page with a greeting
+loop state final == false
+    User -> StateManager : sends\n(message)
+
+    StateManager -> Observer : label answers\n(chat history, state data)
+    Observer --> StateManager : labeled answers
+
+    alt state final == false
+        StateManager -> Questioner : get next question\n(chat history, state data)
+        Questioner --> StateManager : question
+        StateManager --> User : question
+    end
+end
+StateManager -> Questioner : get goodbye\n(state data)
+Questioner --> StateManager : goodbye message
+StateManager -> Database : register client\n(state data)
+Database --> StateManager : registration voucher
+StateManager --> User : goodbye message\nand registration voucher
+@enduml
+
+@startuml
+title Conversation StateManager Class Diagram
+footer \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tby @rimvydasb
+
+class QuestionnaireLine {
+    field: string
+    label: string
+    value: string
+}
+
+class State {
+  - chatHistory: string[]
+  + isFinal(data): boolean
+}
+
+class StateManager {
+  - questionerPromptTpl: string
+  - goodbyePromptTpl: string
+  - observerPromptTpl: string
+  + getQuestionerPrompts(state): string
+  + getGoodbyePrompts(state): string
+  + getObserverPrompts(state): string
+  + getNextQuestion(state.chat,questionerPrompts): string
+  + labelAnswers(state.chat,observerPrompts): QuestionnaireLine[]
+  + updateStateData(state.data,labeledAnswers): StateData
+  + registerClient(state.data): RegistrationVoucher
+}
+
+StateManager "1" *-- "1" State : state
+State "1" *-- "*" QuestionnaireLine : data
+@enduml

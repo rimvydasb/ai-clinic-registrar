@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import {TextField, Button, List, ListItem, ListItemText, Typography, Paper} from '@mui/material';
 import {green} from '@mui/material/colors';
 import DataTable from "./components/registration";
+import styles from "./index.module.css";
+import HealingIcon from '@mui/icons-material/Healing';
 
 const INIT_STATE_DATA = [
     {field: "name", label: "user's name", value: null},
@@ -77,6 +79,7 @@ const ChatApp = () => {
 
     return (
         <div style={{maxWidth: '600px', margin: '0 auto', padding: '20px'}}>
+            <Typography variant="h6" className={styles.title}><HealingIcon style={{ color: '#4CAF50' }} />  My Clinic</Typography>
             <Paper style={{padding: '20px', backgroundColor: 'white'}}>
                 <List>
                     {messages.map((message, index) => (

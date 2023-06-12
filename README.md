@@ -2,10 +2,21 @@
 - [x] Chat application with NodeJS and React
 - [x] Chat Completion with gpt-3.5-turbo
 - [x] Data Extraction with text-curie-001
-- [ ] Data storing
+- [ ] Storing voucher to the database
 - [ ] AWS deployment ready
 
 For more basic example, please refer OpenAI API example pet name generator  [quickstart tutorial](https://platform.openai.com/docs/quickstart). It uses the [Next.js](https://nextjs.org/) framework with [React](https://reactjs.org/). Check out the tutorial or follow the instructions below to get set up. AI Clinic Registrar is the copy of this repository.
+
+## Example conversation:
+
+<div style="text-align: center;"><img src="docs/img.png" width="400"></div>
+
+## AI Assistant Features
+
+- [x] Politely refuses to interact in unnecessary conversation
+- [x] Prints voucher as soon as name and telephone is collected
+- [x] Politely tries to end the conversation if all data is collected
+- [x] Is aware that it is not eligible to answer any medical question or advice
 
 ## Setup
 
