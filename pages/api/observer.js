@@ -1,5 +1,4 @@
 import {configuration, getRequest, openai, validateConfiguration} from "./lib";
-import {console} from "next/dist/compiled/@edge-runtime/primitives/console";
 
 function getStateData(text) {
     let result = [];
