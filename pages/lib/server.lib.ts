@@ -1,6 +1,7 @@
 import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum, Configuration, OpenAIApi} from "openai";
 import {NextApiRequest, NextApiResponse} from 'next';
-import {AgentRequest} from "./objectmodel";
+import {AgentRequest, ChatMessage, DataItem} from "./objectmodel";
+import {ChatCompletionFunctions, ChatCompletionRequestMessage} from "openai/api";
 
 export function getNextOpenAI(req: NextApiRequest): SimpleOpenAI {
 
@@ -53,11 +54,33 @@ class SimpleOpenAI {
         }
     }
 
-    async createChatCompletion(messages: any[]): Promise<ChatCompletionResponseMessage> {
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = null, systemPrompt: string = null): Promise<ChatCompletionResponseMessage> {
+
+        const hasFunctions = functions && functions.length > 0;
+
+        let requestMessages : ChatCompletionRequestMessage[] = messages
+            .filter(value => value.ignored === false)
+            .map(value => ChatMessage.asChatCompletionRequestMessage(value));
+
+        if (systemPrompt && !hasFunctions) {
+            requestMessages.unshift(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
+        }
+
+        if (systemPrompt && hasFunctions) {
+            requestMessages.push(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
+        }
+
+        console.debug(JSON.stringify(requestMessages));
+
         const completion = await this.openai.createChatCompletion({
             model: "gpt-3.5-turbo",
-            messages: messages,
-            temperature: 0.2,
+            messages: requestMessages,
+            functions: (hasFunctions) ? functions : undefined,
+            temperature: (hasFunctions) ? 0.0 : 0.2,
+            max_tokens: 250,
+            top_p: 1,
+            presence_penalty: 0,
+            frequency_penalty: 0,
         });
 
         try {
@@ -66,6 +89,54 @@ class SimpleOpenAI {
             console.error("Error in createChatCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createChatCompletion: " + JSON.stringify(e));
         }
+    }
+
+    async extractDataFromChat(messages: ChatMessage[], existingData: DataItem[]): Promise<DataItem[]> {
+
+        let properties = {};
+
+        existingData
+            .filter(value => value.value == null)
+            .forEach(value => {
+                properties[value.field] = {
+                    "type": "string",
+                    "description": value.label
+                }
+            });
+
+        let functionCall = {
+            "name": "extract_data",
+            "description": "Extract user's data if found",
+            "parameters": {
+                "type": "object",
+                "properties": properties
+            }
+        }
+
+        let extractedData = await this.createChatCompletion(
+            messages,
+            [functionCall],
+            "Extract data from the user. Only use the functions you have been provided with."
+        );
+
+        if (extractedData.function_call) {
+            let data = JSON.parse(extractedData.function_call.arguments);
+            for (let field in data) {
+                let value = data[field];
+                if (value) {
+                    let toBeUpdated = existingData.find(item => item.field === field);
+                    if (toBeUpdated) {
+                        toBeUpdated.value = value;
+                    } else {
+                        console.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
+                    }
+                }
+            }
+        } else {
+            console.error("No function_call found in response: " + JSON.stringify(extractedData));
+        }
+
+        return existingData;
     }
 }
 
@@ -79,11 +150,22 @@ class SimpleOpenAIMock extends SimpleOpenAI {
         return "name: John\n\n";
     }
 
-    async createChatCompletion(messages: ChatCompletionResponseMessage[]): Promise<ChatCompletionResponseMessage> {
-        return Promise.resolve({
-            "role": ChatCompletionResponseMessageRoleEnum.Assistant,
-            "content": "I understood you. Goodbye."
-        });
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = []): Promise<ChatCompletionResponseMessage> {
+        if (functions.length > 0) {
+            return Promise.resolve({
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "extract_data",
+                    "arguments": "{\n  \"name\": \"John\"\n}"
+                }
+            });
+        } else {
+            return Promise.resolve({
+                "role": ChatCompletionResponseMessageRoleEnum.Assistant,
+                "content": "I understood you. Goodbye."
+            });
+        }
     }
 }
 

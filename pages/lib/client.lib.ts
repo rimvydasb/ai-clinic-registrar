@@ -1,11 +1,11 @@
-import {Message, ResponseData, StateDataItem} from "./objectmodel";
+import {ChatMessage, ResponseData, DataItem} from "./objectmodel";
 
 export enum APIEndpoint {
     Observer = "/api/observer",
     Questioner = "/api/questioner",
 }
 
-export async function post(endpoint: APIEndpoint, messages: Message[], stateData: StateDataItem[]) {
+export async function post(endpoint: APIEndpoint, messages: ChatMessage[], stateData: DataItem[]) {
     const response = await fetch(endpoint, {
         method: "POST",
         headers: {

@@ -1,18 +1,17 @@
 import {NextApiRequest} from 'next';
-import {StateDataItem} from "../lib/objectmodel";
+import {DataItem} from "../lib/objectmodel";
 import {createHandler, getNextOpenAI, parseRequest} from "../lib/server.lib";
 
 export async function questionerRequest(req: NextApiRequest) {
 
     let nextOpenAi = getNextOpenAI(req);
     let request = parseRequest(req);
+    let systemPrompt = generateQuestionerPrompt(request.stateData);
 
-    request.messages.concat({"role": "system", "content": generateQuestionerPrompt(request.stateData)});
-
-    return await nextOpenAi.createChatCompletion(request.messages);
+    return await nextOpenAi.createChatCompletion(request.messages, null, systemPrompt);
 }
 
-function generateQuestionerPrompt(stateData: StateDataItem[]) {
+function generateQuestionerPrompt(stateData: DataItem[]) {
 
     console.log("stateData = " + JSON.stringify(stateData));
 

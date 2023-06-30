@@ -4,34 +4,34 @@ import {green} from '@mui/material/colors';
 import DataTable from "./components/registration";
 import styles from "./index.module.css";
 import HealingIcon from '@mui/icons-material/Healing';
-import {Message, StateDataItem} from "./lib/objectmodel";
+import {ChatMessage, DataItem} from "./lib/objectmodel";
 import {APIEndpoint, post} from "./lib/client.lib";
 import {ChatCompletionResponseMessageRoleEnum} from "openai";
 
-const INIT_STATE_DATA: StateDataItem[] = [
+const INIT_STATE_DATA: DataItem[] = [
     {field: "name", label: "user's name", value: null},
     {field: "telephone", label: "user's telephone number", value: null},
 ]
 
 const ChatApp: React.FC = () => {
-    const [messages, setMessages] = useState<Message[]>([
-        new Message(ChatCompletionResponseMessageRoleEnum.Assistant, "Hello, I'm the doctor's assistant. How can I help you?"),
+    const [messages, setMessages] = useState<ChatMessage[]>([
+        new ChatMessage(ChatCompletionResponseMessageRoleEnum.Assistant, "Hello, I'm the doctor's assistant. How can I help you?"),
     ]);
     const [newMessage, setNewMessage] = useState('');
-    const [stateData, setStateData] = useState<StateDataItem[]>(INIT_STATE_DATA);
+    const [stateData, setStateData] = useState<DataItem[]>(INIT_STATE_DATA);
 
     const handleNewMessageChange = (event: ChangeEvent<HTMLInputElement>) => {
         setNewMessage(event.target.value);
     };
 
     const handleSendMessage = async () => {
-        const updatedMessages = messages.concat(new Message(ChatCompletionResponseMessageRoleEnum.User, newMessage));
+        const updatedMessages = messages.concat(new ChatMessage(ChatCompletionResponseMessageRoleEnum.User, newMessage));
         setMessages(updatedMessages);
         setNewMessage('');
 
         const extractedAnswers = await post(APIEndpoint.Observer, updatedMessages, stateData);
 
-        if (!StateDataItem.validate(extractedAnswers)) {
+        if (!DataItem.validate(extractedAnswers)) {
             return;
         }
 

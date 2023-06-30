@@ -1,8 +1,8 @@
 import {NextApiRequest} from 'next';
-import {AgentRequest, StateDataItem} from "../lib/objectmodel";
+import {AgentRequest, DataItem} from "../lib/objectmodel";
 import {createHandler, getNextOpenAI, parseRequest} from "../lib/server.lib";
 
-function getStateData(text: string): StateDataItem[] {
+function getStateData(text: string): DataItem[] {
     let result = [];
     const lines = text.split("\n");
     for (let line of lines) {
@@ -17,7 +17,7 @@ function getStateData(text: string): StateDataItem[] {
     return result;
 }
 
-function searchInDialog(newRow: StateDataItem, dialog: string): number {
+function searchInDialog(newRow: DataItem, dialog: string): number {
     if (newRow.value.length < 3) return 0;
     const firstThree = newRow.value.substring(0, 3);
     return dialog.indexOf(firstThree);
@@ -72,4 +72,14 @@ export async function observerRequest(req: NextApiRequest) {
     return request.stateData;
 }
 
-export default createHandler(observerRequest, "Calling Observer");
+export async function observerRequest2(req: NextApiRequest) {
+
+    let nextOpenAi = getNextOpenAI(req);
+    let request = parseRequest(req);
+
+    request.stateData = await nextOpenAi.extractDataFromChat(request.messages, request.stateData);
+
+    return request.stateData;
+}
+
+export default createHandler(observerRequest2, "Calling Updated Observer");

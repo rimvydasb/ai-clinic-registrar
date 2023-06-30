@@ -1,16 +1,26 @@
 import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum} from "openai";
+import {ChatCompletionRequestMessage} from "openai/api";
 
-export class Message implements ChatCompletionResponseMessage {
+export class ChatMessage implements ChatCompletionResponseMessage {
     content: string;
     role: ChatCompletionResponseMessageRoleEnum;
+    ignored: boolean;
 
     constructor(role: ChatCompletionResponseMessageRoleEnum, content: string) {
         this.role = role;
         this.content = content;
+        this.ignored = false;
+    }
+
+    static asChatCompletionRequestMessage(value: any): ChatCompletionRequestMessage {
+        return {
+            "role": value.role,
+            "content": value.content,
+        }
     }
 }
 
-export class StateDataItem {
+export class DataItem {
     constructor(public field: string, public label: string, public value: string | null) {
     }
 
@@ -24,7 +34,7 @@ export class StateDataItem {
 }
 
 export class AgentRequest {
-    constructor(public messages: Message[], public stateData: StateDataItem[]) {
+    constructor(public messages: ChatMessage[], public stateData: DataItem[]) {
     }
 }
 
