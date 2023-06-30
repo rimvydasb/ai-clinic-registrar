@@ -8,19 +8,15 @@ export async function questionerRequest(req: NextApiRequest) {
     let request = parseRequest(req);
     let systemPrompt = generateQuestionerPrompt(request.stateData);
 
-    return await nextOpenAi.createChatCompletion(request.messages, null, systemPrompt);
+    return await nextOpenAi.createChatCompletion(request.messages, [], systemPrompt);
 }
 
 function generateQuestionerPrompt(stateData: DataItem[]) {
-
-    console.log("stateData = " + JSON.stringify(stateData));
 
     let labelsString = stateData
         .filter(value => value.value == null)
         .map(value => value.label)
         .join(', and ');
-
-    console.log("labelsString = " + labelsString);
 
     if (labelsString === "") {
 

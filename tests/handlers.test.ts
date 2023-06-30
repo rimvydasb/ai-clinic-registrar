@@ -66,7 +66,7 @@ test('questioner handler returns single message', async () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
-        result: new ChatMessage("assistant", "I understood you. Goodbye."),
+        result: ChatMessage.asChatCompletionRequestMessage(new ChatMessage("assistant", "I understood you. Goodbye.")),
     });
 });
 

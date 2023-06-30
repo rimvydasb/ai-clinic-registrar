@@ -14,10 +14,13 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.13.6",
+    "debug": "^4.3.4",
+    "moment": "^2.29.4",
     "next": "^13.4.7",
     "openai": "^3.3.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "winston": "^3.9.0"
   },
   "engines": {
     "node": ">=14.6.0"

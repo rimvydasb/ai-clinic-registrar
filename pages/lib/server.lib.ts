@@ -2,6 +2,7 @@ import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum, Co
 import {NextApiRequest, NextApiResponse} from 'next';
 import {AgentRequest, ChatMessage, DataItem} from "./objectmodel";
 import {ChatCompletionFunctions, ChatCompletionRequestMessage} from "openai/api";
+import {logger} from "./logger.lib";
 
 export function getNextOpenAI(req: NextApiRequest): SimpleOpenAI {
 
@@ -35,7 +36,7 @@ class SimpleOpenAI {
             this.configuration = configuration;
             this.openai = new OpenAIApi(this.configuration);
         } else {
-            console.warn("Configuration is null, using mock");
+            logger.warn("Configuration is null, using mock");
         }
     }
 
@@ -49,12 +50,12 @@ class SimpleOpenAI {
         try {
             return completion.data.choices[0].text;
         } catch (e) {
-            console.error("Error in createTextCompletion: " + JSON.stringify(e));
+            logger.error("Error in createTextCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createTextCompletion: " + JSON.stringify(e));
         }
     }
 
-    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = null, systemPrompt: string = null): Promise<ChatCompletionResponseMessage> {
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = [], systemPrompt: string = null): Promise<ChatCompletionResponseMessage> {
 
         const hasFunctions = functions && functions.length > 0;
 
@@ -70,7 +71,7 @@ class SimpleOpenAI {
             requestMessages.push(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
         }
 
-        console.debug(JSON.stringify(requestMessages));
+        logger.debug(JSON.stringify(requestMessages));
 
         const completion = await this.openai.createChatCompletion({
             model: "gpt-3.5-turbo",
@@ -86,7 +87,7 @@ class SimpleOpenAI {
         try {
             return completion.data.choices[0].message;
         } catch (e) {
-            console.error("Error in createChatCompletion: " + JSON.stringify(e));
+            logger.error("Error in createChatCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createChatCompletion: " + JSON.stringify(e));
         }
     }
@@ -128,12 +129,12 @@ class SimpleOpenAI {
                     if (toBeUpdated) {
                         toBeUpdated.value = value;
                     } else {
-                        console.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
+                        logger.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
                     }
                 }
             }
         } else {
-            console.error("No function_call found in response: " + JSON.stringify(extractedData));
+            logger.error("No function_call found in response: " + JSON.stringify(extractedData));
         }
 
         return existingData;
@@ -177,12 +178,12 @@ class SimpleOpenAIMock extends SimpleOpenAI {
  */
 export function parseRequest(req: NextApiRequest): AgentRequest {
     if (!req.body.messages || !Array.isArray(req.body.messages)) {
-        console.error("Request body:" + JSON.stringify(req.body));
+        logger.error("Request body:" + JSON.stringify(req.body));
         throw new Error("Messages are not valid");
     }
 
     if (!req.body.stateData || !Array.isArray(req.body.stateData)) {
-        console.error("Request body:" + JSON.stringify(req.body));
+        logger.error("Request body:" + JSON.stringify(req.body));
         throw new Error("State data are not valid");
     }
 
@@ -193,7 +194,7 @@ type HandlerRequestFunction = (req: NextApiRequest) => Promise<any>;
 
 export function createHandler(requestFunction: HandlerRequestFunction, logMessage: string) {
     return async (req: NextApiRequest, res: NextApiResponse) => {
-        console.info(logMessage);
+        logger.info(logMessage);
         try {
             const result = await requestFunction(req);
             res.status(200).json({
@@ -201,11 +202,11 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
             });
         } catch (error: any) {
             if (error.response) {
-                console.error(error.response.status, error.response.data);
+                logger.error(error.response.status, error.response.data);
                 res.status(error.response.status).json(error.response.data);
             } else {
                 let errorMessage = (error.message) ? `Server error: ${error.message}` : `Server error: ${error}`;
-                console.error(errorMessage);
+                logger.error(errorMessage);
                 res.status(500).json({
                     error: {
                         message: errorMessage,
