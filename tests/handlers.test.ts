@@ -1,4 +1,3 @@
-import observerHandler from '../pages/api/observer';
 import questionerHandler from '../pages/api/questioner';
 import {expectError, mockPostRequest, mockResponse} from "./utils";
 import {ChatMessage, DataItem} from "../pages/lib/objectmodel";
@@ -6,17 +5,6 @@ import {getNextOpenAI} from "../pages/lib/server.lib";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-test('fail if no data', async () => {
-
-    const req = mockPostRequest(null, null, true);
-    const res = mockResponse();
-
-    await observerHandler(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expectError(res, "Server error: Messages are not valid");
-});
 
 test('observer handler returns state data', async () => {
 
@@ -33,7 +21,7 @@ test('observer handler returns state data', async () => {
     const req = mockPostRequest(messages, stateData, true);
     const res = mockResponse();
 
-    await observerHandler(req, res);
+    await questionerHandler(req, res);
 
     // console.log(res.json.mock.calls.length);
     // console.log(res.json.mock.calls);

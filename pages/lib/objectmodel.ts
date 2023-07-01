@@ -24,7 +24,7 @@ export class DataItem {
     constructor(public field: string, public label: string, public value: string | null) {
     }
 
-    static validate(items: any): boolean {
+    static validate(items: DataItem[]): boolean {
         if (items === null || !Array.isArray(items)) {
             alert("Wrong state data: " + JSON.stringify(items));
             return false;
@@ -38,7 +38,10 @@ export class AgentRequest {
     }
 }
 
-export type ResponseData = {
-    result: any;
+export class AgentResponse {
+    result?: {
+        nextMessage: ChatMessage,
+        stateData: DataItem[],
+    };
     error?: { message: string };
 }

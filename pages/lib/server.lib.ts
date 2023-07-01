@@ -59,7 +59,7 @@ class SimpleOpenAI {
 
         const hasFunctions = functions && functions.length > 0;
 
-        let requestMessages : ChatCompletionRequestMessage[] = messages
+        let requestMessages: ChatCompletionRequestMessage[] = messages
             .filter(value => value.ignored === false)
             .map(value => ChatMessage.asChatCompletionRequestMessage(value));
 
@@ -71,7 +71,7 @@ class SimpleOpenAI {
             requestMessages.push(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
         }
 
-        logger.debug(JSON.stringify(requestMessages));
+        logger.debug("createChatCompletion: " + JSON.stringify(requestMessages));
 
         const completion = await this.openai.createChatCompletion({
             model: "gpt-3.5-turbo",
@@ -90,6 +90,17 @@ class SimpleOpenAI {
             logger.error("Error in createChatCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createChatCompletion: " + JSON.stringify(e));
         }
+    }
+
+    containsPartOfText(messages: ChatMessage[], text: string, chars: number): boolean {
+        if (text == null || text.trim().length === 0) {
+            return false;
+        }
+        const parOfText = text.substring(0, chars);
+        if (parOfText == null || parOfText.trim().length === 0) {
+            return false;
+        }
+        return messages.some(value => value.content.toLowerCase().includes(parOfText.trim().toLowerCase()));
     }
 
     async extractDataFromChat(messages: ChatMessage[], existingData: DataItem[]): Promise<DataItem[]> {
@@ -123,11 +134,12 @@ class SimpleOpenAI {
         if (extractedData.function_call) {
             let data = JSON.parse(extractedData.function_call.arguments);
             for (let field in data) {
-                let value = data[field];
-                if (value) {
+                let newValue = data[field];
+                // making sure extracted data exists somewhere in the chat to avoid delusional data
+                if (this.containsPartOfText(messages, newValue, 3)) {
                     let toBeUpdated = existingData.find(item => item.field === field);
                     if (toBeUpdated) {
-                        toBeUpdated.value = value;
+                        toBeUpdated.value = newValue;
                     } else {
                         logger.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
                     }
@@ -197,9 +209,7 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
         logger.info(logMessage);
         try {
             const result = await requestFunction(req);
-            res.status(200).json({
-                result: result
-            });
+            res.status(200).json(result);
         } catch (error: any) {
             if (error.response) {
                 logger.error(error.response.status, error.response.data);

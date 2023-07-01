@@ -1,11 +1,11 @@
-import {ChatMessage, ResponseData, DataItem} from "./objectmodel";
+import {ChatMessage, AgentResponse, DataItem} from "./objectmodel";
 
 export enum APIEndpoint {
     Observer = "/api/observer",
     Questioner = "/api/questioner",
 }
 
-export async function post(endpoint: APIEndpoint, messages: ChatMessage[], stateData: DataItem[]) {
+export async function callAgent(endpoint: APIEndpoint, messages: ChatMessage[], stateData: DataItem[]): Promise<AgentResponse> {
     const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -14,11 +14,15 @@ export async function post(endpoint: APIEndpoint, messages: ChatMessage[], state
         body: JSON.stringify({messages: messages, stateData: stateData}),
     });
 
-    const data: ResponseData = await response.json();
+    console.debug("Response: " + JSON.stringify(response));
+
+    const data: AgentResponse = await response.json();
     if (response.status !== 200) {
         console.error(data.error?.message);
         alert(data.error?.message)
     }
 
-    return data.result;
+    console.debug("Response data: " + JSON.stringify(data));
+
+    return data;
 }

@@ -5,7 +5,7 @@ import DataTable from "./components/registration";
 import styles from "./index.module.css";
 import HealingIcon from '@mui/icons-material/Healing';
 import {ChatMessage, DataItem} from "./lib/objectmodel";
-import {APIEndpoint, post} from "./lib/client.lib";
+import {APIEndpoint, callAgent} from "./lib/client.lib";
 import {ChatCompletionResponseMessageRoleEnum} from "openai";
 
 const INIT_STATE_DATA: DataItem[] = [
@@ -29,26 +29,28 @@ const ChatApp: React.FC = () => {
         setMessages(updatedMessages);
         setNewMessage('');
 
-        const extractedAnswers = await post(APIEndpoint.Observer, updatedMessages, stateData);
+        const response = await callAgent(APIEndpoint.Questioner, updatedMessages, stateData);
 
-        if (!DataItem.validate(extractedAnswers)) {
-            return;
-        }
+        console.debug("Response: " + JSON.stringify(response));
+        console.debug("Response result: " + JSON.stringify(response.result));
 
-        setStateData(extractedAnswers);
+        if (DataItem.validate(response.result.stateData)) {
+            setStateData(response.result.stateData);
 
-        const newAssistantReply = await post(APIEndpoint.Questioner, updatedMessages, extractedAnswers);
+            console.log("Assistant reply: " + JSON.stringify(response.result.nextMessage));
 
-        console.log("Assistant reply: " + JSON.stringify(newAssistantReply));
-
-        if (newAssistantReply) {
-            setMessages(updatedMessages.concat(newAssistantReply));
+            if (response.result.nextMessage) {
+                setMessages(updatedMessages.concat(response.result.nextMessage));
+            }
+        } else {
+            console.log("Invalid state data: " + JSON.stringify(response));
         }
     };
 
     return (
         <div style={{maxWidth: '600px', margin: '0 auto', padding: '20px'}}>
-            <Typography variant="h6" className={styles.title}><HealingIcon style={{ color: '#4CAF50' }} />  My Clinic</Typography>
+            <Typography variant="h6" className={styles.title}><HealingIcon style={{color: '#4CAF50'}}/> My
+                Clinic</Typography>
             <Paper style={{padding: '20px', backgroundColor: 'white'}}>
                 <List>
                     {messages.map((message, index) => (
@@ -69,7 +71,7 @@ const ChatApp: React.FC = () => {
                     <Button onClick={handleSendMessage} variant="contained"
                             style={{backgroundColor: green[500]}}>Send</Button>
                 </div>
-                <DataTable stateData={stateData} />
+                <DataTable stateData={stateData}/>
             </Paper>
         </div>
     );
