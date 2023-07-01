@@ -7,14 +7,14 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     let nextOpenAi = getNextOpenAI(req);
     let request = parseRequest(req);
 
-    if (getHasMissingData(request)) {
+    if (hasMissingData(request)) {
         // @Todo: better truncate messages that already used for a data extraction
         request.stateData = await nextOpenAi.extractDataFromChat(request.messages, request.stateData);
     }
 
     let nextMessage;
 
-    if (getHasMissingData(request)) {
+    if (hasMissingData(request)) {
         let systemPrompt = generateQuestionerPrompt(request.stateData);
         nextMessage = await nextOpenAi.createChatCompletion(request.messages, [], systemPrompt);
     } else {
@@ -30,10 +30,14 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
         }
     }
 
+    if (!hasMissingData(request)) {
+        response.result.voucherId = Math.random().toString(36).substring(7);
+    }
+
     return response;
 }
 
-function getHasMissingData(request: AgentRequest) {
+function hasMissingData(request: AgentRequest) {
     return request.stateData.some(value => value.value == null);
 }
 

@@ -1,4 +1,4 @@
-import questionerHandler from '../pages/api/questioner';
+import questionerHandler, {questionerRequest} from '../pages/api/questioner';
 import {expectError, mockPostRequest, mockResponse} from "./utils";
 import {ChatMessage, DataItem} from "../pages/lib/objectmodel";
 import {getNextOpenAI} from "../pages/lib/server.lib";
@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-test('observer handler returns state data', async () => {
+test('should return mock data', async () => {
 
     const messages = [
         new ChatMessage("assistant", "Hello, how can I help you?"),
@@ -28,83 +28,20 @@ test('observer handler returns state data', async () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
-        result: [
-            new DataItem("name", "user's name", "John"),
-            new DataItem("telephone", "user's telephone number", null),
-        ],
+        result: {
+            stateData: [
+                new DataItem("name", "user's name", "John"),
+                new DataItem("telephone", "user's telephone number", null),
+            ],
+            nextMessage: {
+                content: "I understood you. Goodbye.",
+                role: "assistant",
+            },
+        }
     });
 });
 
-test('questioner handler returns single message', async () => {
-
-    const messages = [
-        new ChatMessage("assistant", "Hello, how can I help you?"),
-        new ChatMessage("user", "Hello, my name is John"),
-    ];
-
-    const stateData = [
-        new DataItem("name", "user's name", null),
-        new DataItem("telephone", "user's telephone number", null),
-    ];
-
-    const req = mockPostRequest(messages, stateData, true);
-    const res = mockResponse();
-
-    await questionerHandler(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-        result: ChatMessage.asChatCompletionRequestMessage(new ChatMessage("assistant", "I understood you. Goodbye.")),
-    });
-});
-
-test('function call', async () => {
-
-    const functionCall1 = {
-        "name": "save_user_name",
-        "description": "Save user's name",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "userName": {
-                    "type": "string",
-                    "description": "user's name"
-                }
-            }
-        }
-    }
-
-    const functionCall2 = {
-        "name": "save_user_telephone",
-        "description": "Save user's telephone number",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "telephoneNumber": {
-                    "type": "string",
-                    "description": "user's telephone number"
-                }
-            }
-        }
-    }
-
-    const functionCall3 = {
-        "name": "extract_data",
-        "description": "Extract data if found",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "userName": {
-                    "type": "string",
-                    "description": "user's name"
-                },
-                "telephoneNumber": {
-                    "type": "string",
-                    "description": "user's telephone number"
-                }
-            }
-        }
-    }
+test('live test: should not messes with names', async () => {
 
     const messages = [
         new ChatMessage("assistant", "Hello, how can I help you?"),
@@ -119,10 +56,57 @@ test('function call', async () => {
     const req = mockPostRequest(messages, stateData, false);
     let nextOpenAi = getNextOpenAI(req);
 
-    //let result = await nextOpenAi.createChatCompletion(messages,[functionCall1, functionCall2]);
+    const res = mockResponse();
 
-    let result = await nextOpenAi.extractDataFromChat(messages, stateData)
+    await questionerHandler(req, res);
 
-    console.log(result);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+        result: {
+            stateData: [
+                new DataItem("name", "user's name", "Don McLean"),
+                new DataItem("telephone", "user's telephone number", null),
+            ],
+            nextMessage: {
+                content: expect.any(String),
+                role: "assistant",
+            }
+        }
+    });
 
+});
+
+test('live test: should end quick', async () => {
+
+    const messages = [
+        new ChatMessage("assistant", "Hello, how can I help you?"),
+        new ChatMessage("user", "This is Margaret Teacher calling, my phone is +38472518569, call me a doctor")
+    ];
+
+    const stateData = [
+        new DataItem("name", "user's name", null),
+        new DataItem("telephone", "user's telephone number", null),
+    ];
+
+    const req = mockPostRequest(messages, stateData, false);
+    let nextOpenAi = getNextOpenAI(req);
+
+    const res = mockResponse();
+
+    await questionerHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+        result: {
+            stateData: [
+                new DataItem("name", "user's name", "Margaret Teacher"),
+                new DataItem("telephone", "user's telephone number", "+38472518569"),
+            ],
+            nextMessage: {
+                content: expect.any(String),
+                role: "assistant",
+            },
+            voucherId: expect.any(String),
+        }
+    });
 });

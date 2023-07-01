@@ -42,6 +42,7 @@ export class AgentResponse {
     result?: {
         nextMessage: ChatMessage,
         stateData: DataItem[],
+        voucherId?: string,
     };
     error?: { message: string };
 }
