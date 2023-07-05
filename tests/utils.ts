@@ -1,5 +1,5 @@
 import {NextApiRequest, NextApiResponse} from "next";
-import {ChatMessage, DataItem} from "../pages/lib/objectmodel";
+import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
 
 
 export function mockResponse() {
@@ -9,14 +9,10 @@ export function mockResponse() {
     } as unknown as NextApiResponse & { json: jest.Mock };
 }
 
-export function mockPostRequest(messages: ChatMessage[] = null, stateData: DataItem[] = null, isMock: boolean = true) {
+export function mockPostRequest(request: AgentRequest) {
     return {
         method: 'POST',
-        body: {
-            mock: isMock,
-            messages: messages,
-            stateData: stateData,
-        },
+        body: request,
     } as unknown as NextApiRequest;
 }
 

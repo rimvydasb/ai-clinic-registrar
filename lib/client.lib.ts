@@ -1,17 +1,17 @@
-import {ChatMessage, AgentResponse, DataItem} from "./objectmodel";
+import {ChatMessage, AgentResponse, DataItem, AgentRequest} from "./objectmodel";
 
 export enum APIEndpoint {
     Observer = "/api/observer",
     Questioner = "/api/questioner",
 }
 
-export async function callAgent(endpoint: APIEndpoint, messages: ChatMessage[], stateData: DataItem[]): Promise<AgentResponse> {
+export async function callAgent(endpoint: APIEndpoint, request: AgentRequest): Promise<AgentResponse> {
     const response = await fetch(endpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({messages: messages, stateData: stateData}),
+        body: JSON.stringify(request),
     });
 
     console.debug("Response: " + JSON.stringify(response));

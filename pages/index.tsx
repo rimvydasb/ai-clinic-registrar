@@ -4,21 +4,19 @@ import {green} from '@mui/material/colors';
 import DataTable from "./components/registration";
 import styles from "./index.module.css";
 import HealingIcon from '@mui/icons-material/Healing';
-import {ChatMessage, DataItem} from "./lib/objectmodel";
-import {APIEndpoint, callAgent} from "./lib/client.lib";
+import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
+import {APIEndpoint, callAgent} from "../lib/client.lib";
 import {ChatCompletionResponseMessageRoleEnum} from "openai";
-
-const INIT_STATE_DATA: DataItem[] = [
-    {field: "name", label: "user's name", value: null},
-    {field: "telephone", label: "user's telephone number", value: null},
-]
+import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../configuration/configuration";
+import {isValidArray} from "../lib/server.lib";
 
 const ChatApp: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([
-        new ChatMessage(ChatCompletionResponseMessageRoleEnum.Assistant, "Hello, I'm the doctor's assistant. How can I help you?"),
+        new ChatMessage(ChatCompletionResponseMessageRoleEnum.Assistant, AGENT_GREETING),
     ]);
     const [newMessage, setNewMessage] = useState('');
-    const [stateData, setStateData] = useState<DataItem[]>(INIT_STATE_DATA);
+    const [stateData, setStateData] = useState<DataItem[]>(REGISTRATION_CLIENT_DATA);
+    const [symptoms, setSymptoms] = useState<DataItem[]>(CLIENT_SYMPTOMS_DATA);
 
     const handleNewMessageChange = (event: ChangeEvent<HTMLInputElement>) => {
         setNewMessage(event.target.value);
@@ -29,21 +27,22 @@ const ChatApp: React.FC = () => {
         setMessages(updatedMessages);
         setNewMessage('');
 
-        const response = await callAgent(APIEndpoint.Questioner, updatedMessages, stateData);
+        const request = new AgentRequest(updatedMessages, stateData, symptoms);
+        const response = await callAgent(APIEndpoint.Questioner, request);
 
-        console.debug("Response: " + JSON.stringify(response));
+        console.debug("Response error: " + JSON.stringify(response.error));
         console.debug("Response result: " + JSON.stringify(response.result));
 
-        if (DataItem.validate(response.result.stateData)) {
+        if (isValidArray(response.result.stateData, "state data")) {
             setStateData(response.result.stateData);
+        }
 
-            console.log("Assistant reply: " + JSON.stringify(response.result.nextMessage));
+        if (isValidArray(response.result.symptoms, "symptoms")) {
+            setSymptoms(response.result.symptoms);
+        }
 
-            if (response.result.nextMessage) {
-                setMessages(updatedMessages.concat(response.result.nextMessage));
-            }
-        } else {
-            console.log("Invalid state data: " + JSON.stringify(response));
+        if (response.result.nextMessage) {
+            setMessages(updatedMessages.concat(response.result.nextMessage));
         }
     };
 

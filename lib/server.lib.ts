@@ -1,12 +1,12 @@
 import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum, Configuration, OpenAIApi} from "openai";
 import {NextApiRequest, NextApiResponse} from 'next';
-import {AgentRequest, ChatMessage, DataItem} from "./objectmodel";
+import {AgentRequest, ChatMessage, DataItem, DataItemType} from "./objectmodel";
 import {ChatCompletionFunctions, ChatCompletionRequestMessage} from "openai/api";
 import {logger} from "./logger.lib";
 
-export function getNextOpenAI(req: NextApiRequest): SimpleOpenAI {
+export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
 
-    if (req.body.mock) {
+    if (request.isMock) {
         return new SimpleOpenAIMock();
     } else {
 
@@ -111,8 +111,12 @@ class SimpleOpenAI {
             .filter(value => value.value == null)
             .forEach(value => {
                 properties[value.field] = {
-                    "type": "string",
+                    "type": value.type.toString(),
                     "description": value.label
+                }
+
+                if (value.enumeration) {
+                    properties[value.field].enum = value.enumeration;
                 }
             });
 
@@ -131,17 +135,23 @@ class SimpleOpenAI {
             "Extract data from the user. Only use the functions you have been provided with."
         );
 
+        logger.debug("extractedData: " + JSON.stringify(extractedData));
+
         if (extractedData.function_call) {
             let data = JSON.parse(extractedData.function_call.arguments);
             for (let field in data) {
                 let newValue = data[field];
-                // making sure extracted data exists somewhere in the chat to avoid delusional data
-                if (this.containsPartOfText(messages, newValue, 3)) {
-                    let toBeUpdated = existingData.find(item => item.field === field);
-                    if (toBeUpdated) {
+                let toBeUpdated = existingData.find(item => item.field === field);
+                if (!toBeUpdated) {
+                    logger.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
+                } else {
+                    if (toBeUpdated.type == DataItemType.Boolean) {
                         toBeUpdated.value = newValue;
                     } else {
-                        logger.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
+                        // making sure extracted data exists somewhere in the chat to avoid delusional data
+                        if (this.containsPartOfText(messages, newValue, 3)) {
+                            toBeUpdated.value = newValue;
+                        }
                     }
                 }
             }
@@ -182,6 +192,21 @@ class SimpleOpenAIMock extends SimpleOpenAI {
     }
 }
 
+export function isValidArray(object: any, label: string = null) {
+
+    if (object === null || !Array.isArray(object)) {
+        if (alert)
+            alert("Wrong " + label + ": " + JSON.stringify(object));
+        if (logger)
+            logger.error("Wrong " + label + ": " + JSON.stringify(object));
+        else
+            console.error("ERROR: Wrong " + label + ": " + JSON.stringify(object));
+
+        return false;
+    }
+    return true;
+}
+
 /**
  *
  * @param req
@@ -189,17 +214,12 @@ class SimpleOpenAIMock extends SimpleOpenAI {
  * @return {[object[],object[]]}
  */
 export function parseRequest(req: NextApiRequest): AgentRequest {
-    if (!req.body.messages || !Array.isArray(req.body.messages)) {
-        logger.error("Request body:" + JSON.stringify(req.body));
-        throw new Error("Messages are not valid");
+    if (isValidArray(req.body.messages, "messages") && isValidArray(req.body.stateData, "stateData") && isValidArray(req.body.symptoms, "symptoms")) {
+        return AgentRequest.fromJson(req.body);
     }
-
-    if (!req.body.stateData || !Array.isArray(req.body.stateData)) {
-        logger.error("Request body:" + JSON.stringify(req.body));
-        throw new Error("State data are not valid");
-    }
-
-    return new AgentRequest(req.body.messages, req.body.stateData);
+    let request: AgentRequest = AgentRequest.fromJson(req.body);
+    logger.debug("AgentRequest: " + JSON.stringify(request));
+    return request;
 }
 
 type HandlerRequestFunction = (req: NextApiRequest) => Promise<any>;
@@ -209,6 +229,7 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
         logger.info(logMessage);
         try {
             const result = await requestFunction(req);
+            logger.debug("Response 200 body: " + JSON.stringify(result));
             res.status(200).json(result);
         } catch (error: any) {
             if (error.response) {
