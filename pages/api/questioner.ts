@@ -28,6 +28,7 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     let systemPrompt;
     let voucherId: string = null;
 
+    // First goal is to identify any symptom before asking for name and telephone
     if (countFilled(request.symptoms) == 0) {
         systemPrompt = generateQuestionerPrompt(request.symptoms);
     } else if (countMissing(request.stateData) > 0) {

@@ -1,6 +1,6 @@
 import questionerHandler from '../pages/api/questioner';
 import {mockPostRequest, mockResponse} from "./utils";
-import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
+import {AgentRequest, ChatMessage, DataItem, DataItemType} from "../lib/objectmodel";
 import dotenv from "dotenv";
 import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../configuration/configuration";
 
@@ -24,14 +24,12 @@ test('should return mock data', async () => {
     expect(res.json).toHaveBeenCalledWith({
         result: {
             stateData: [
-                new DataItem("name", "user's name", null, null,"John"),
+                new DataItem("name", "user's name", null, DataItemType.String, "John"),
                 new DataItem("telephone", "user's telephone number"),
             ],
             symptoms: CLIENT_SYMPTOMS_DATA,
-            nextMessage: {
-                content: "I understood you. Goodbye.",
-                role: "assistant",
-            },
+            nextMessage: new ChatMessage("assistant", "I understood you. Goodbye."),
+            voucherId: null,
         }
     });
 });
@@ -51,14 +49,16 @@ test('live test: should not messes with names', async () => {
     expect(res.json).toHaveBeenCalledWith({
         result: {
             stateData: [
-                new DataItem("name", "user's name", null, null,"Don McLean"),
+                new DataItem("name", "user's name", null, DataItemType.String, "Don McLean"),
                 new DataItem("telephone", "user's telephone number"),
             ],
             symptoms: CLIENT_SYMPTOMS_DATA,
             nextMessage: {
                 content: expect.any(String),
                 role: "assistant",
-            }
+                ignored: expect.any(Boolean),
+            } as ChatMessage,
+            voucherId: null,
         }
     });
 });
@@ -80,14 +80,18 @@ test('live test: ask for symptoms', async () => {
     expect(res.json).toHaveBeenCalledWith({
         result: {
             stateData: [
-                new DataItem("name", "user's name", null, null, "Margaret Teacher"),
+                new DataItem("name", "user's name", null, DataItemType.String, null), // taking just last two messages
                 new DataItem("telephone", "user's telephone number"),
             ],
-            symptoms: [],
+            symptoms: expect.arrayContaining([
+                new DataItem("pain", "does user feel pain?", null, DataItemType.Boolean, "true"),
+            ]),
             nextMessage: {
                 content: expect.any(String),
                 role: "assistant",
-            }
+                ignored: expect.any(Boolean),
+            } as ChatMessage,
+            voucherId: null,
         }
     });
 });
@@ -96,7 +100,7 @@ test('live test: should end quick', async () => {
 
     const messages = [
         new ChatMessage("assistant", AGENT_GREETING),
-        new ChatMessage("user", "This is Margaret Teacher calling, my phone is +38472518569, call me a doctor")
+        new ChatMessage("user", "This is Margaret Teacher calling, my phone is +38472518569, call me a doctor. Everything is fine, nothing hurts.")
     ];
 
     const req = mockPostRequest(new AgentRequest(messages, REGISTRATION_CLIENT_DATA, CLIENT_SYMPTOMS_DATA));
@@ -107,14 +111,16 @@ test('live test: should end quick', async () => {
     expect(res.json).toHaveBeenCalledWith({
         result: {
             stateData: [
-                new DataItem("name", "user's name", null, null,"Margaret Teacher"),
-                new DataItem("telephone", "user's telephone number", null, null,"+38472518569"),
+                new DataItem("name", "user's name", null, DataItemType.String, "Margaret Teacher"),
+                new DataItem("telephone", "user's telephone number", null, DataItemType.String, "+38472518569"),
             ],
+            symptoms: CLIENT_SYMPTOMS_DATA,
             nextMessage: {
                 content: expect.any(String),
                 role: "assistant",
-            },
+                ignored: expect.any(Boolean),
+            } as ChatMessage,
             voucherId: expect.any(String),
         }
     });
-});
+},10000);
