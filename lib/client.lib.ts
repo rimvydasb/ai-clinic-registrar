@@ -1,7 +1,6 @@
-import {ChatMessage, AgentResponse, DataItem, AgentRequest} from "./objectmodel";
+import {AgentResponse, AgentRequest} from "./objectmodel";
 
 export enum APIEndpoint {
-    Observer = "/api/observer",
     Questioner = "/api/questioner",
 }
 

@@ -1,7 +1,6 @@
 import {NextApiRequest} from 'next';
 import {AgentRequest, AgentResponse, ChatMessage, DataItem} from "../../lib/objectmodel";
 import {createHandler, getNextOpenAI, parseRequest} from "../../lib/server.lib";
-import {logger} from "../../lib/logger.lib";
 
 export async function questionerRequest(req: NextApiRequest): Promise<AgentResponse> {
 

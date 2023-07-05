@@ -40,7 +40,6 @@ export function isValidArray(object: any, label: string = null) {
 /**
  *
  * @param req
- * @param res
  * @return {[object[],object[]]}
  */
 export function parseRequest(req: NextApiRequest): AgentRequest {
@@ -76,4 +75,4 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
             }
         }
     };
-};
+}
