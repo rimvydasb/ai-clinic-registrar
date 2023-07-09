@@ -1,6 +1,8 @@
 import {NextApiRequest} from 'next';
 import {AgentRequest, AgentResponse, ChatMessage, DataItem} from "../../lib/objectmodel";
 import {createHandler, getNextOpenAI, parseRequest} from "../../lib/server.lib";
+import {storeData} from "../../lib/db.lib";
+import {REGISTRATION_TABLE_NAME} from "../../configuration/configuration";
 
 export async function questionerRequest(req: NextApiRequest): Promise<AgentResponse> {
 
@@ -10,18 +12,34 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     // initializing OpenAI API
     let nextOpenAi = getNextOpenAI(request);
 
-    let lastMessages = (request.messages.length >= 2) ? request.messages.slice(-2) : request.messages;
+    // // did client provide all the data or some still missing?
+    // if (countMissing(request.stateData) > 0) {
+    //     // @Todo: better truncate messages that already used for a data extraction
+    //     // last two messages
+    //     request.stateData = await nextOpenAi.extractDataFromChat(lastMessages, request.stateData);
+    // }
+    //
+    // if (countMissing(request.symptoms) > 0) {
+    //     // @Todo: better truncate messages that already used for a data extraction
+    //     request.symptoms = await nextOpenAi.extractDataFromChat(lastMessages, request.symptoms);
+    // }
 
-    // did client provide all the data or some still missing?
-    if (countMissing(request.stateData) > 0) {
-        // @Todo: better truncate messages that already used for a data extraction
-        // last two messages
-        request.stateData = await nextOpenAi.extractDataFromChat(lastMessages, request.stateData);
-    }
+    let dataToExtract = request.stateData
+        .concat(request.symptoms)
+        .filter(value => value.value == null);
 
-    if (countMissing(request.symptoms) > 0) {
-        // @Todo: better truncate messages that already used for a data extraction
-        request.symptoms = await nextOpenAi.extractDataFromChat(lastMessages, request.symptoms);
+    if (dataToExtract.length > 0) {
+        let lastMessages = (request.messages.length >= 2) ? request.messages.slice(-2) : request.messages;
+        let extractedData = await nextOpenAi.extractDataFromChat(lastMessages, dataToExtract);
+        extractedData.forEach(value => {
+            // update symptoms
+            let symptom = request.symptoms.find(symptom => symptom.field == value.field);
+            if (symptom) symptom.value = value.value;
+
+            // update state data
+            let stateData = request.stateData.find(stateData => stateData.field == value.field);
+            if (stateData) stateData.value = value.value;
+        });
     }
 
     let systemPrompt;
@@ -35,8 +53,10 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     } else {
         // if all the data is collected, generate a voucher id
         systemPrompt = generateGoodbyePrompt(request.stateData);
-        voucherId = Math.random().toString(36).substring(7);
-        storeRegistrationData(request);
+
+        if (request.voucherId == null) {
+            voucherId = storeRegistrationData(request);
+        }
     }
 
     // the next agent message that will be displayed to the user
@@ -63,7 +83,7 @@ function countFilled(stateData: DataItem[]): number {
 }
 
 function storeRegistrationData(request: AgentRequest) {
-
+    return storeData(REGISTRATION_TABLE_NAME, request);
 }
 
 function generateQuestionerPrompt(stateData: DataItem[]) {

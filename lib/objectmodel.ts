@@ -56,6 +56,7 @@ export class AgentRequest {
         public messages: ChatMessage[],
         public stateData: DataItem[],
         public symptoms: DataItem[],
+        public voucherId: string = null,
         public isMock: boolean = false,
     ) {
     }
@@ -65,6 +66,7 @@ export class AgentRequest {
             json.messages,
             json.stateData,
             json.symptoms,
+            json.voucherId || null,
             json.isMock || false,
         );
     }

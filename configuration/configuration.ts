@@ -4,6 +4,8 @@ let Yes = CellValue.Yes;
 let No = CellValue.No;
 let any = CellValue.Any;
 
+export const REGISTRATION_TABLE_NAME: string = "ai-clinic-registrar-table";
+
 export const AGENT_GREETING: string = "Hello, I'm the doctor's assistant. How can I help you?";
 
 export const REGISTRATION_CLIENT_DATA: DataItem[] = [

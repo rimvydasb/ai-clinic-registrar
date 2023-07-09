@@ -15,6 +15,7 @@ const ChatApp: React.FC = () => {
         new ChatMessage(ChatCompletionResponseMessageRoleEnum.Assistant, AGENT_GREETING),
     ]);
     const [newMessage, setNewMessage] = useState('');
+    const [voucherId, setVoucherId] = useState(null);
     const [stateData, setStateData] = useState<DataItem[]>(REGISTRATION_CLIENT_DATA);
     const [symptoms, setSymptoms] = useState<DataItem[]>(CLIENT_SYMPTOMS_DATA);
 
@@ -27,7 +28,7 @@ const ChatApp: React.FC = () => {
         setMessages(updatedMessages);
         setNewMessage('');
 
-        const request = new AgentRequest(updatedMessages, stateData, symptoms);
+        const request = new AgentRequest(updatedMessages, stateData, symptoms, voucherId);
         const response = await callAgent(APIEndpoint.Questioner, request);
 
         console.debug("Response error: " + JSON.stringify(response.error));
@@ -39,6 +40,10 @@ const ChatApp: React.FC = () => {
 
         if (isValidArray(response.result.symptoms, "symptoms")) {
             setSymptoms(response.result.symptoms);
+        }
+
+        if (response.result.voucherId) {
+            setVoucherId(response.result.voucherId);
         }
 
         if (response.result.nextMessage) {
@@ -70,7 +75,7 @@ const ChatApp: React.FC = () => {
                     <Button onClick={handleSendMessage} variant="contained"
                             style={{backgroundColor: green[500]}}>Send</Button>
                 </div>
-                <DataTable stateData={stateData}/>
+                <DataTable stateData={stateData} voucherId={voucherId}/>
             </Paper>
         </div>
     );

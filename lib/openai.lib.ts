@@ -91,15 +91,28 @@ export class SimpleOpenAI {
         existingData
             .filter(value => value.value == null)
             .forEach(value => {
-                properties[value.field] = {
-                    "type": value.type.toString(),
-                    "description": value.label
+                if (value.type == DataItemType.Boolean) {
+                    properties[value.field] = {
+                        "type": "string",
+                        "enum": ["yes", "no", "unknown"],
+                        "description": value.label
+                    }
+                } else {
+                    properties[value.field] = {
+                        "type": value.type.toString(),
+                        "description": value.label
+                    }
                 }
 
                 if (value.enumeration) {
                     properties[value.field].enum = value.enumeration;
                 }
             });
+
+        if (Object.keys(properties).length === 0) {
+            logger.warn("No data to extract");
+            return existingData;
+        }
 
         let functionCall = {
             "name": "extract_data",
@@ -127,7 +140,10 @@ export class SimpleOpenAI {
                     logger.error("Could not find field " + field + " in existing data: " + JSON.stringify(existingData));
                 } else {
                     if (toBeUpdated.type == DataItemType.Boolean) {
-                        toBeUpdated.value = newValue.toString().toLowerCase();
+                        let result = newValue.toString().toLowerCase();
+                        if (result === "yes" || result === "no") {
+                            toBeUpdated.value = result;
+                        }
                     } else {
                         // making sure extracted data exists somewhere in the chat to avoid delusional data
                         if (this.containsPartOfText(messages, newValue, 3)) {
