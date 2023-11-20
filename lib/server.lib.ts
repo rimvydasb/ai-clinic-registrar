@@ -1,8 +1,8 @@
-import {Configuration} from "openai";
 import {NextApiRequest, NextApiResponse} from 'next';
 import {AgentRequest} from "./objectmodel";
 import {logger} from "./logger.lib";
 import {SimpleOpenAI, SimpleOpenAIMock} from "./openai.lib";
+import {ClientOptions} from "openai";
 
 export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
 
@@ -10,9 +10,9 @@ export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
         return new SimpleOpenAIMock();
     } else {
 
-        let configuration = new Configuration({
+        let configuration: ClientOptions = {
             apiKey: process.env.OPENAI_API_KEY,
-        });
+        };
 
         if (!configuration.apiKey) {
             throw new Error("OpenAI API key not configured, please follow instructions in README.md");

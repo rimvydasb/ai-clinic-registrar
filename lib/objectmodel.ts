@@ -1,19 +1,23 @@
-import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum} from "openai";
-import {ChatCompletionRequestMessage} from "openai/api";
+import {
+    ChatCompletionMessage,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam
+} from "openai/resources";
+import OpenAI from "openai";
 
-export class ChatMessage implements ChatCompletionResponseMessage {
+export class ChatMessage{
     constructor(
-        public role: ChatCompletionResponseMessageRoleEnum,
+        public role: string,
         public content: string,
         public ignored: boolean = false
     ) {
     }
 
-    static from(value: ChatCompletionResponseMessage): ChatMessage {
-        return new ChatMessage(value.role, value.content);
+    static from(value: ChatCompletionMessage | ChatCompletionSystemMessageParam | ChatCompletionUserMessageParam): ChatMessage {
+        return new ChatMessage(value.role, value.content.toString());
     }
 
-    static asChatCompletionRequestMessage(value: any): ChatCompletionRequestMessage {
+    static asChatCompletionRequestMessage(value: any): ChatCompletionMessage {
         return {
             role: value.role,
             content: value.content,
@@ -48,6 +52,29 @@ export class DataItem {
             .filter(item => item.value !== null)
             .filter(item => item.value.toLowerCase() === value.toLowerCase())
             .length;
+    }
+
+    public toProperty() {
+        let property = {};
+
+        if (this.type == DataItemType.Boolean) {
+            property = {
+                "type": "string",
+                "enum": ["yes", "no", "unknown"],
+                "description": this.label
+            }
+        } else {
+            property = {
+                "type": this.type.toString(),
+                "description": this.label
+            }
+
+            if (this.enumeration) {
+                property["enum"] = this.enumeration;
+            }
+        }
+
+        return property;
     }
 }
 

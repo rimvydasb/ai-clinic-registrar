@@ -6,13 +6,12 @@ import styles from "./index.module.css";
 import HealingIcon from '@mui/icons-material/Healing';
 import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
 import {APIEndpoint, callAgent} from "../lib/client.lib";
-import {ChatCompletionResponseMessageRoleEnum} from "openai";
 import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../configuration/configuration";
 import {isValidArray} from "../lib/server.lib";
 
 const ChatApp: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([
-        new ChatMessage(ChatCompletionResponseMessageRoleEnum.Assistant, AGENT_GREETING),
+        new ChatMessage('assistant', AGENT_GREETING),
     ]);
     const [newMessage, setNewMessage] = useState('');
     const [voucherId, setVoucherId] = useState(null);
@@ -24,7 +23,7 @@ const ChatApp: React.FC = () => {
     };
 
     const handleSendMessage = async () => {
-        const updatedMessages = messages.concat(new ChatMessage(ChatCompletionResponseMessageRoleEnum.User, newMessage));
+        const updatedMessages = messages.concat(new ChatMessage('user', newMessage));
         setMessages(updatedMessages);
         setNewMessage('');
 

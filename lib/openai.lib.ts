@@ -1,46 +1,73 @@
-import {ChatCompletionResponseMessage, ChatCompletionResponseMessageRoleEnum, Configuration, OpenAIApi} from "openai";
+import OpenAI, { ClientOptions } from "openai";
 import {logger} from "./logger.lib";
 import {ChatMessage, DataItem, DataItemType} from "./objectmodel";
-import {ChatCompletionFunctions, ChatCompletionRequestMessage} from "openai/api";
+import {ChatCompletionCreateParams, ChatCompletionMessage, ChatCompletionMessageParam} from "openai/resources";
+
+// export class FunctionCall {
+//
+//     public request: ChatCompletionFunctions;
+//
+//     constructor(public description: string, public callback: Function, public args: DataItem[] = []) {
+//
+//         let properties = {};
+//
+//         args.forEach(value => {
+//             properties[value.field] = value.toProperty();
+//         });
+//
+//         this.request = {
+//             name: callback.name,
+//             description: description,
+//             parameters: {
+//                 "type": "object",
+//                 "properties": properties
+//             },
+//         } as ChatCompletionFunctions;
+//     }
+//
+//     public call(data: any): any {
+//         return this.callback(data);
+//     }
+// }
 
 export class SimpleOpenAI {
 
-    openai: OpenAIApi;
+    openai: OpenAI;
 
-    configuration: Configuration;
+    configuration: ClientOptions;
 
     // completion module
     textCompletionModel: string = "text-curie-001"; //text-babbage-001
 
-    constructor(configuration: Configuration) {
+    constructor(configuration: ClientOptions) {
         if (configuration) {
             this.configuration = configuration;
-            this.openai = new OpenAIApi(this.configuration);
+            this.openai = new OpenAI(this.configuration);
         } else {
             logger.warn("Configuration is null, using mock");
         }
     }
 
     async createTextCompletion(prompts: string) {
-        const completion = await this.openai.createCompletion({
+        const completion = await this.openai.completions.create({
             model: this.textCompletionModel,
             prompt: prompts,
             temperature: 0.0,
         });
 
         try {
-            return completion.data.choices[0].text;
+            return completion.choices[0].text;
         } catch (e) {
             logger.error("Error in createTextCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createTextCompletion: " + JSON.stringify(e));
         }
     }
 
-    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = [], systemPrompt: string = null): Promise<ChatCompletionResponseMessage> {
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionCreateParams.Function> = [], systemPrompt: string = null): Promise<ChatCompletionMessage> {
 
         const hasFunctions = functions && functions.length > 0;
 
-        let requestMessages: ChatCompletionRequestMessage[] = messages
+        let requestMessages: ChatCompletionMessageParam[] = messages
             .filter(value => value.ignored === false)
             .map(value => ChatMessage.asChatCompletionRequestMessage(value));
 
@@ -54,7 +81,7 @@ export class SimpleOpenAI {
 
         logger.debug("createChatCompletion: " + JSON.stringify(requestMessages));
 
-        const completion = await this.openai.createChatCompletion({
+        const completion = await this.openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: requestMessages,
             functions: (hasFunctions) ? functions : undefined,
@@ -66,7 +93,7 @@ export class SimpleOpenAI {
         });
 
         try {
-            return completion.data.choices[0].message;
+            return completion.choices[0].message;
         } catch (e) {
             logger.error("Error in createChatCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createChatCompletion: " + JSON.stringify(e));
@@ -170,7 +197,7 @@ export class SimpleOpenAIMock extends SimpleOpenAI {
         return "name: John\n\n";
     }
 
-    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionFunctions> = []): Promise<ChatCompletionResponseMessage> {
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionCreateParams.Function> = []): Promise<ChatCompletionMessage> {
         if (functions.length > 0) {
             return Promise.resolve({
                 "role": "assistant",
@@ -182,7 +209,7 @@ export class SimpleOpenAIMock extends SimpleOpenAI {
             });
         } else {
             return Promise.resolve({
-                "role": ChatCompletionResponseMessageRoleEnum.Assistant,
+                "role": "assistant",
                 "content": "I understood you. Goodbye."
             });
         }

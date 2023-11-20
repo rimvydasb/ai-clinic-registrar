@@ -30,3 +30,42 @@ export const PRIORITY_DECISION_TABLE = [
     [1, any, any, any, any, "LOW"],
     [0, No, No, No, No, "LOW_REMOTE"]
 ];
+
+export const WORKING_HOURS = {
+    "Monday": {
+        "start": "08:00",
+        "end": "18:00",
+        "note": "lunch break 12:00-13:00"
+    },
+    "Tuesday": {
+        "start": "08:00",
+        "end": "18:00",
+        "note": "lunch break 12:00-13:00"
+
+    },
+    "Wednesday": {
+        "start": "08:00",
+        "end": "18:00",
+        "note": "lunch break 12:00-13:00"
+    },
+    "Thursday": {
+        "start": "08:00",
+        "end": "18:00",
+        "note": "lunch break 12:00-13:00"
+    },
+    "Friday": {
+        "start": "08:00",
+        "end": "18:00",
+        "note": "lunch break 12:00-13:00"
+    },
+    "Saturday": {
+        "start": "10:00",
+        "end": "14:00",
+        "note": "reduced working hours"
+    },
+    "Sunday": {
+        "start": "10:00",
+        "end": "12:00",
+        "note": "reduced working hours, only extra patients"
+    }
+};
