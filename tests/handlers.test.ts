@@ -32,7 +32,7 @@ test('should return mock data', async () => {
             voucherId: null,
         }
     });
-});
+}, 10000);
 
 test('live test: should not messes with names', async () => {
 

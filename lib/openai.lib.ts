@@ -1,4 +1,4 @@
-import OpenAI, { ClientOptions } from "openai";
+import OpenAI, {ClientOptions} from "openai";
 import {logger} from "./logger.lib";
 import {ChatMessage, DataItem, DataItemType} from "./objectmodel";
 import {ChatCompletionCreateParams, ChatCompletionMessage, ChatCompletionMessageParam} from "openai/resources";
@@ -49,21 +49,20 @@ export class SimpleOpenAI {
     }
 
     async createTextCompletion(prompts: string) {
-        const completion = await this.openai.completions.create({
-            model: this.textCompletionModel,
-            prompt: prompts,
-            temperature: 0.0,
-        });
-
         try {
+            const completion = await this.openai.completions.create({
+                model: this.textCompletionModel,
+                prompt: prompts,
+                temperature: 0.0,
+            });
             return completion.choices[0].text;
-        } catch (e) {
+        } catch (e: any) {
             logger.error("Error in createTextCompletion: " + JSON.stringify(e));
             return Promise.reject("Error in createTextCompletion: " + JSON.stringify(e));
         }
     }
 
-    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionCreateParams.Function> = [], systemPrompt: string = null): Promise<ChatCompletionMessage> {
+    async createChatCompletion(messages: ChatMessage[], functions: Array<ChatCompletionCreateParams.Function> = [], systemPrompt: string = null): Promise<ChatCompletionMessage | Error> {
 
         const hasFunctions = functions && functions.length > 0;
 
@@ -81,22 +80,23 @@ export class SimpleOpenAI {
 
         logger.debug("createChatCompletion: " + JSON.stringify(requestMessages));
 
-        const completion = await this.openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: requestMessages,
-            functions: (hasFunctions) ? functions : undefined,
-            temperature: (hasFunctions) ? 0.0 : 0.2,
-            max_tokens: 250,
-            top_p: 1,
-            presence_penalty: 0,
-            frequency_penalty: 0,
-        });
-
         try {
+            const completion = await this.openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: requestMessages,
+                functions: (hasFunctions) ? functions : undefined,
+                temperature: (hasFunctions) ? 0.0 : 0.2,
+                max_tokens: 150,
+                top_p: 1,
+                presence_penalty: 0,
+                frequency_penalty: 0,
+            });
+
             return completion.choices[0].message;
         } catch (e) {
-            logger.error("Error in createChatCompletion: " + JSON.stringify(e));
-            return Promise.reject("Error in createChatCompletion: " + JSON.stringify(e));
+            const error = new Error(`Error in createChatCompletion: ${JSON.stringify(e)}`)
+            logger.error(error.message);
+            return Promise.reject(error);
         }
     }
 
@@ -111,7 +111,7 @@ export class SimpleOpenAI {
         return messages.some(value => value.content.toLowerCase().includes(parOfText.trim().toLowerCase()));
     }
 
-    async extractDataFromChat(messages: ChatMessage[], existingData: DataItem[]): Promise<DataItem[]> {
+    async extractDataFromChat(messages: ChatMessage[], existingData: DataItem[]): Promise<DataItem[] | Error> {
 
         let properties = {};
 
@@ -155,6 +155,10 @@ export class SimpleOpenAI {
             [functionCall],
             "Extract data from the user. Only use the functions you have been provided with."
         );
+
+        if (extractedData instanceof Error) {
+            return Promise.reject(extractedData);
+        }
 
         logger.debug("extractedData: " + JSON.stringify(extractedData));
 

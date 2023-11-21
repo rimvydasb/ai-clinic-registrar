@@ -1,17 +1,12 @@
-import {ConfigurationOptions} from "aws-sdk/lib/config-base";
 import {logger} from "./logger.lib";
+import {fromEnv} from "@aws-sdk/credential-provider-env";
+import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
+import {PutCommand} from "@aws-sdk/lib-dynamodb"; // Import PutCommand for DynamoDB operations
 
-const AWS = require('aws-sdk');
-
-AWS.config.update({
-    region: 'eu-central-1', // Specify 'local' as the region
-    credentials: new AWS.Credentials({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    }),
-} as ConfigurationOptions);
-
-const dynamodb = new AWS.DynamoDB();
+const ddbClient = new DynamoDBClient({
+    region: "eu-central-1",
+    credentials: fromEnv(),
+});
 
 function getID() {
     const currentDate = new Date();
@@ -24,11 +19,12 @@ function getID() {
     return `${currentDay}${currentHour}${currentMinute}${randomLetter}`;
 }
 
-export function storeData(tableName: string, data: any): string {
+export async function storeData(tableName: string, data: any): Promise<string> {
+    const id = getID();
     const params = {
         TableName: tableName,
         Item: {
-            id: {S: getID()},
+            id: {S: id},
             timestamp: {N: Date.now().toString()},
             data: {
                 S: JSON.stringify(data)
@@ -36,13 +32,12 @@ export function storeData(tableName: string, data: any): string {
         },
     };
 
-    dynamodb.putItem(params, function (err, data) {
-        if (err) {
-            logger.error('Error storing data:', err);
-        } else {
-            logger.info('Data stored successfully:', data);
-        }
-    });
+    try {
+        await ddbClient.send(new PutCommand(params));
+        logger.info('Data stored successfully');
+    } catch (err) {
+        logger.error('Error storing data:', err);
+    }
 
-    return params.Item.id.S;
+    return id;
 }

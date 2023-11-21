@@ -31,6 +31,16 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     if (dataToExtract.length > 0) {
         let lastMessages = (request.messages.length >= 2) ? request.messages.slice(-2) : request.messages;
         let extractedData = await nextOpenAi.extractDataFromChat(lastMessages, dataToExtract);
+        if (extractedData instanceof Error) {
+            return {
+                result: {
+                    nextMessage: new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat."),
+                    stateData: request.stateData,
+                    symptoms: request.symptoms,
+                    voucherId: null,
+                }
+            } as AgentResponse;
+        }
         extractedData.forEach(value => {
             // update symptoms
             let symptom = request.symptoms.find(symptom => symptom.field == value.field);
@@ -55,7 +65,7 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
         systemPrompt = generateGoodbyePrompt(request.stateData);
 
         if (request.voucherId == null) {
-            voucherId = storeRegistrationData(request);
+            voucherId = await storeRegistrationData(request);
         }
     }
 
@@ -63,7 +73,17 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     // @Todo: better truncate messages, they're not necessary for a goodbye
     let nextMessage = await nextOpenAi.createChatCompletion(request.messages, [], systemPrompt);
 
-    // preparing response
+    if (nextMessage instanceof Error) {
+        return {
+            result: {
+                nextMessage: new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat."),
+                stateData: request.stateData,
+                symptoms: request.symptoms,
+                voucherId: null,
+            }
+        } as AgentResponse;
+    }
+
     return {
         result: {
             nextMessage: ChatMessage.from(nextMessage),
