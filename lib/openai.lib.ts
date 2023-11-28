@@ -1,7 +1,11 @@
 import OpenAI, {ClientOptions} from "openai";
 import {logger} from "./logger.lib";
 import {ChatMessage, DataItem, DataItemType} from "./objectmodel";
-import {ChatCompletionCreateParams, ChatCompletionMessage, ChatCompletionMessageParam} from "openai/resources";
+import {
+    ChatCompletionCreateParams,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+} from "openai/resources";
 
 // export class FunctionCall {
 //
@@ -68,14 +72,22 @@ export class SimpleOpenAI {
 
         let requestMessages: ChatCompletionMessageParam[] = messages
             .filter(value => value.ignored === false)
-            .map(value => ChatMessage.asChatCompletionRequestMessage(value));
+            .map(value => ({
+                role: value.role,
+                content: value.content
+            } as ChatCompletionMessageParam));
 
-        if (systemPrompt && !hasFunctions) {
-            requestMessages.unshift(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
-        }
-
-        if (systemPrompt && hasFunctions) {
-            requestMessages.push(ChatMessage.asChatCompletionRequestMessage(new ChatMessage("system", systemPrompt)));
+        // add system prompt to the beginning or the end of the request depending on the presence of functions
+        if (systemPrompt) {
+            const systemMessage = {
+                role: 'system',
+                content: systemPrompt
+            } as ChatCompletionMessageParam;
+            if (!hasFunctions) {
+                requestMessages.unshift(systemMessage);
+            } else {
+                requestMessages.push(systemMessage);
+            }
         }
 
         logger.debug("createChatCompletion: " + JSON.stringify(requestMessages));
@@ -157,7 +169,7 @@ export class SimpleOpenAI {
         );
 
         if (extractedData instanceof Error) {
-            return Promise.reject(extractedData);
+            return extractedData;
         }
 
         logger.debug("extractedData: " + JSON.stringify(extractedData));

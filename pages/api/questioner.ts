@@ -1,68 +1,57 @@
 import {NextApiRequest} from 'next';
-import {AgentRequest, AgentResponse, ChatMessage, DataItem} from "../../lib/objectmodel";
+import {AgentRequest, ChatMessage, DataItem} from "../../lib/objectmodel";
 import {createHandler, getNextOpenAI, parseRequest} from "../../lib/server.lib";
 import {storeData} from "../../lib/db.lib";
 import {REGISTRATION_TABLE_NAME} from "../../configuration/configuration";
 
-export async function questionerRequest(req: NextApiRequest): Promise<AgentResponse> {
+export async function questionerRequest(nextApiRequest: NextApiRequest): Promise<AgentRequest> {
 
     // parsing request to the object model
-    let request: AgentRequest = parseRequest(req);
+    let request : AgentRequest = parseRequest(nextApiRequest);
+
+    if (request.errorMessage) {
+        request.errorMessage = request.errorMessage + "; call rejected";
+        return request;
+    }
 
     // initializing OpenAI API
     let nextOpenAi = getNextOpenAI(request);
 
-    // // did client provide all the data or some still missing?
-    // if (countMissing(request.stateData) > 0) {
-    //     // @Todo: better truncate messages that already used for a data extraction
-    //     // last two messages
-    //     request.stateData = await nextOpenAi.extractDataFromChat(lastMessages, request.stateData);
-    // }
-    //
-    // if (countMissing(request.symptoms) > 0) {
-    //     // @Todo: better truncate messages that already used for a data extraction
-    //     request.symptoms = await nextOpenAi.extractDataFromChat(lastMessages, request.symptoms);
-    // }
-
-    let dataToExtract = request.stateData
-        .concat(request.symptoms)
+    let dataToExtract = request.userData
+        .concat(request.symptomsData)
         .filter(value => value.value == null);
 
     if (dataToExtract.length > 0) {
         let lastMessages = (request.messages.length >= 2) ? request.messages.slice(-2) : request.messages;
         let extractedData = await nextOpenAi.extractDataFromChat(lastMessages, dataToExtract);
         if (extractedData instanceof Error) {
-            return {
-                result: {
-                    nextMessage: new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat."),
-                    stateData: request.stateData,
-                    symptoms: request.symptoms,
-                    voucherId: null,
-                }
-            } as AgentResponse;
+            request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
+            return request;
         }
         extractedData.forEach(value => {
-            // update symptoms
-            let symptom = request.symptoms.find(symptom => symptom.field == value.field);
+            // update symptomsData
+            let symptom = request.symptomsData.find(symptom => symptom.field == value.field);
             if (symptom) symptom.value = value.value;
 
             // update state data
-            let stateData = request.stateData.find(stateData => stateData.field == value.field);
+            let stateData = request.userData.find(stateData => stateData.field == value.field);
             if (stateData) stateData.value = value.value;
         });
     }
 
-    let systemPrompt;
+    let systemPrompt : string;
     let voucherId: string = null;
 
     // First goal is to identify any symptom before asking for name and telephone
-    if (countFilled(request.symptoms) == 0) {
-        systemPrompt = generateQuestionerPrompt(request.symptoms);
-    } else if (countMissing(request.stateData) > 0) {
-        systemPrompt = generateQuestionerPrompt(request.stateData);
+    // @Todo: if voucher is generated, then conversation must end
+    if (countFilled(request.symptomsData) == 0) {
+        systemPrompt = generateQuestionerPrompt(request.symptomsData);
+    } else if (countMissing(request.userData) > 0) {
+        // Second goal is to identify name, telephone or other data
+        systemPrompt = generateQuestionerPrompt(request.userData);
     } else {
         // if all the data is collected, generate a voucher id
-        systemPrompt = generateGoodbyePrompt(request.stateData);
+        systemPrompt = generateGoodbyePrompt(request.userData);
 
         if (request.voucherId == null) {
             voucherId = await storeRegistrationData(request);
@@ -70,28 +59,18 @@ export async function questionerRequest(req: NextApiRequest): Promise<AgentRespo
     }
 
     // the next agent message that will be displayed to the user
-    // @Todo: better truncate messages, they're not necessary for a goodbye
+    // @Todo: it is not necessary to know messages to generate goodbye
     let nextMessage = await nextOpenAi.createChatCompletion(request.messages, [], systemPrompt);
 
     if (nextMessage instanceof Error) {
-        return {
-            result: {
-                nextMessage: new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat."),
-                stateData: request.stateData,
-                symptoms: request.symptoms,
-                voucherId: null,
-            }
-        } as AgentResponse;
+        request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
+        request.errorMessage = nextMessage.message;
+    } else {
+        request.nextMessage = new ChatMessage(nextMessage.role, nextMessage.content);
+        request.voucherId = voucherId;
     }
 
-    return {
-        result: {
-            nextMessage: ChatMessage.from(nextMessage),
-            stateData: request.stateData,
-            symptoms: request.symptoms,
-            voucherId: voucherId,
-        }
-    } as AgentResponse;
+    return request;
 }
 
 function countMissing(stateData: DataItem[]): number {
@@ -128,7 +107,7 @@ function generateGoodbyePrompt(stateData: DataItem[]) {
 
     return `You are an AI doctor's assistant with no medical knowledge. `
         + `The user is calling to schedule an appointment. `
-        + `Tell user doctor will reach him. Tell user his information: ${labelsString}. `
+        + `Tell user that his doctor will reach him. Tell user his information: ${labelsString}. `
         + `Do not ask other questions. Do not answer any questions. Do not advise. Say goodbye.`;
 }
 

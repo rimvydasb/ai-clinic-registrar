@@ -1,10 +1,10 @@
-import {AgentResponse, AgentRequest} from "./objectmodel";
+import {AgentRequest} from "./objectmodel";
 
 export enum APIEndpoint {
     Questioner = "/api/questioner",
 }
 
-export async function callAgent(endpoint: APIEndpoint, request: AgentRequest): Promise<AgentResponse> {
+export async function callAgent(endpoint: APIEndpoint, request: AgentRequest): Promise<AgentRequest> {
     const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -15,10 +15,9 @@ export async function callAgent(endpoint: APIEndpoint, request: AgentRequest): P
 
     console.debug("Response: " + JSON.stringify(response));
 
-    const data: AgentResponse = await response.json();
+    const data: AgentRequest = await response.json();
     if (response.status !== 200) {
-        console.error(data.error?.message);
-        alert(data.error?.message)
+        console.error(data.errorMessage);
     }
 
     console.debug("Response data: " + JSON.stringify(data));

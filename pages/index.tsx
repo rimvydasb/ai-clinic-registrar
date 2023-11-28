@@ -27,26 +27,29 @@ const ChatApp: React.FC = () => {
         setMessages(updatedMessages);
         setNewMessage('');
 
-        const request = new AgentRequest(updatedMessages, stateData, symptoms, voucherId);
+        const request = new AgentRequest();
+        request.messages = updatedMessages;
+        request.symptomsData = symptoms;
+        request.userData = stateData;
+        request.voucherId = voucherId;
         const response = await callAgent(APIEndpoint.Questioner, request);
 
-        console.debug("Response error: " + JSON.stringify(response.error));
-        console.debug("Response result: " + JSON.stringify(response.result));
+        console.debug("Response result: " + JSON.stringify(response));
 
-        if (isValidArray(response.result.stateData, "state data")) {
-            setStateData(response.result.stateData);
+        if (isValidArray(response.userData, "user data")) {
+            setStateData(response.userData);
         }
 
-        if (isValidArray(response.result.symptoms, "symptoms")) {
-            setSymptoms(response.result.symptoms);
+        if (isValidArray(response.symptomsData, "symptoms")) {
+            setSymptoms(response.symptomsData);
         }
 
-        if (response.result.voucherId) {
-            setVoucherId(response.result.voucherId);
+        if (response.voucherId) {
+            setVoucherId(response.voucherId);
         }
 
-        if (response.result.nextMessage) {
-            setMessages(updatedMessages.concat(response.result.nextMessage));
+        if (response.nextMessage) {
+            setMessages(updatedMessages.concat(response.nextMessage));
         }
     };
 

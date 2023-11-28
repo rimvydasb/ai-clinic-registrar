@@ -25,8 +25,6 @@ export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
 export function isValidArray(object: any, label: string = null) {
 
     if (object === null || !Array.isArray(object)) {
-        if (alert)
-            alert("Wrong " + label + ": " + JSON.stringify(object));
         if (logger)
             logger.error("Wrong " + label + ": " + JSON.stringify(object));
         else
@@ -39,16 +37,18 @@ export function isValidArray(object: any, label: string = null) {
 
 /**
  *
- * @param req
+ * @param nextApiRequest
  * @return {[object[],object[]]}
  */
-export function parseRequest(req: NextApiRequest): AgentRequest {
-    if (isValidArray(req.body.messages, "messages") && isValidArray(req.body.stateData, "stateData") && isValidArray(req.body.symptoms, "symptoms")) {
-        return AgentRequest.fromJson(req.body);
-    }
-    let request: AgentRequest = AgentRequest.fromJson(req.body);
+export function parseRequest(nextApiRequest: NextApiRequest): AgentRequest {
+    const request: AgentRequest = AgentRequest.fromJson(nextApiRequest.body);
     logger.debug("AgentRequest: " + JSON.stringify(request));
-    return request;
+    if (isValidArray(request.messages, "messages") && isValidArray(request.userData, "stateData") && isValidArray(request.symptomsData, "symptoms")) {
+        return request;
+    } else {
+        request.errorMessage = "Invalid request";
+        return request;
+    }
 }
 
 type HandlerRequestFunction = (req: NextApiRequest) => Promise<any>;
