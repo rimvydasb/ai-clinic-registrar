@@ -1,9 +1,9 @@
 # AI Clinic Registrar with OpenAI
 - [x] Chat application with NodeJS and React
 - [x] Chat Completion with gpt-3.5-turbo
-- [x] Data Extraction with text-curie-001
-- [ ] Storing voucher to the database
-- [ ] AWS deployment ready
+- [x] Data Extraction with gpt-3.5-turbo
+- [x] Vercel deployment ready
+- [ ] Client priority decision engine example
 
 For more basic example, please refer OpenAI API example pet name generator  [quickstart tutorial](https://platform.openai.com/docs/quickstart). It uses the [Next.js](https://nextjs.org/) framework with [React](https://reactjs.org/). Check out the tutorial or follow the instructions below to get set up. AI Clinic Registrar is the copy of this repository.
 
@@ -27,31 +27,20 @@ For more basic example, please refer OpenAI API example pet name generator  [qui
 3. Navigate into the project directory
 
    ```bash
-   $ cd openai-quickstart-node
+   cd ai-clinic-registrar
+   npm install
+   # for Linux:
+   cp .env.example .env
+   # for Windows:
+   # copy .env.example .env 
    ```
 
-4. Install the requirements
+4. Add your [API key](https://platform.openai.com/account/api-keys) to the newly created `.env` file. Ignore AWS keys.
+
+5. Run the app
 
    ```bash
-   $ npm install
+   npm run dev
    ```
 
-5. Make a copy of the example environment variables file
-
-   On Linux systems: 
-   ```bash
-   $ cp .env.example .env
-   ```
-   On Windows:
-   ```powershell
-   $ copy .env.example .env
-   ```
-6. Add your [API key](https://platform.openai.com/account/api-keys) to the newly created `.env` file
-
-7. Run the app
-
-   ```bash
-   $ npm run dev
-   ```
-
-You should now be able to access the app at [http://localhost:3000](http://localhost:3000)! For the full context behind this example app, check out the [tutorial](https://platform.openai.com/docs/quickstart).
+You should now be able to access the app at [http://localhost:3000](http://localhost:3000).
