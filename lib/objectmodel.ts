@@ -1,7 +1,19 @@
 export class ChatMessage {
 
+    /**
+     * The role of the message sender: user or assistant
+     */
     public role: string;
+
+    /**
+     * The message text
+     */
     public content: string;
+
+    /**
+     * Filter to ignore the message in OpenAI request.
+     * Default is false - all messages are sent to OpenAI.
+     */
     public ignored: boolean = false;
 
     constructor(role: string, content: string) {
@@ -22,6 +34,7 @@ export enum DataItemType {
     Boolean = 'boolean',
 }
 
+// @Todo: refactor to proper plain class, remove methods
 export class DataItem {
     constructor(
         public field: string,
