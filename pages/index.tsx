@@ -78,7 +78,7 @@ const ChatApp: React.FC = () => {
                     <Button onClick={handleSendMessage} variant="contained"
                             style={{backgroundColor: green[500]}}>Send</Button>
                 </div>
-                <DataTable stateData={stateData} voucherId={voucherId}/>
+                <DataTable stateData={stateData} symptoms={symptoms} voucherId={voucherId}/>
             </Paper>
         </div>
     );

@@ -15,13 +15,13 @@ export const REGISTRATION_CLIENT_DATA: DataItem[] = [
 
 export const CLIENT_SYMPTOMS_DATA: DataItem[] = [
     new DataItem("pain", "does user feel pain?", null, DataItemType.Boolean),
-    new DataItem("dizziness", "does user feel dizziness?", null, DataItemType.Boolean),
-    new DataItem("nausea", "does user feel nausea?", null, DataItemType.Boolean),
-    new DataItem("runningBlood", "does user see blood?", null, DataItemType.Boolean),
+    new DataItem("weakness", "does user feel dizziness, fainting or weakness?", null, DataItemType.Boolean),
+    new DataItem("nausea", "does user feel nausea or wants to vomit?", null, DataItemType.Boolean),
+    new DataItem("runningBlood", "does user see blood or have running blood?", null, DataItemType.Boolean),
 ];
 
 export const PRIORITY_DECISION_TABLE = [
-    ["symptomsCount", "pain", "dizziness", "nausea", "runningBlood", "priority"],
+    ["symptomsCount", "pain", "weakness", "nausea", "runningBlood", "priority"],
     [4, Yes, Yes, Yes, Yes, "RED"],
     [3, any, Yes, Yes, Yes, "RED"],
     [3, Yes, any, Yes, Yes, "RED"],

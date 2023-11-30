@@ -29,7 +29,8 @@ export async function questionerRequest(nextApiRequest: NextApiRequest): Promise
     }
 
     if (library.dataToExtract().length > 0) {
-        let lastMessages = (request.messages.length >= 2) ? request.messages.slice(-2) : request.messages;
+        // maximum 4 messages will be used for a data extraction
+        let lastMessages = request.messages.slice(-4);
         let extractedData = await nextOpenAi.extractDataFromChat(lastMessages, library.dataToExtract());
         if (extractedData instanceof Error) {
             request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");

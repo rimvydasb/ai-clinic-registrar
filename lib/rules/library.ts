@@ -34,11 +34,11 @@ export class AgentLibrary {
     }
 
     static decideNextAgentResponse(inputData: AgentRequest): { prompt: string, printVoucher: boolean, message: string } {
-        let systemPrompt, message;
+        let systemPrompt: string, message: string;
         let printVoucher = false;
 
         if (inputData.voucherId || inputData.errorMessage) {
-            message = this.decideInitialAgentResponse(inputData);
+            message = this.decideInitialAgentResponse(inputData) as string;
         }
 
         // First goal is to identify any symptom before asking for name and telephone
@@ -74,9 +74,11 @@ export class AgentLibrary {
 
         return `You are an AI doctor's assistant with no medical knowledge. `
             + `The user is calling to schedule an appointment. `
-            + `The goal is to get information: ${missingData}. `
-            + ((knownData)? `You already know that: ${knownData}. ` : "")
-            + `Do not ask other questions. Do not answer any questions. Do not advise.`;
+            + `The only one goal is to get information: ${missingData}. `
+            + ((knownData) ? `You already know that: ${knownData}. ` : "")
+            + `Do not ask other questions. Do not answer any questions. Do not advise. `
+            + `Do not tell user to call emergency services, because you're the emergency service. `
+            + `Be polite and strictly follow the goal is to get information.`;
     }
 
     static generateGoodbyePrompt(stateData: DataItem[]) {
@@ -88,7 +90,7 @@ export class AgentLibrary {
 
         return `You are an AI doctor's assistant with no medical knowledge. `
             + `The user is calling to schedule an appointment. `
-            + `Tell user that his doctor will reach him. Tell user his information: ${labelsString}. `
+            + `You have one goal: tell user that his doctor will reach him. Optionally tell user his information: ${labelsString}. `
             + `Do not ask other questions. Do not answer any questions. Do not advise. Say goodbye.`;
     }
 
