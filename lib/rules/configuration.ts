@@ -1,4 +1,4 @@
-import {CellValue, DataItem, DataItemType} from "../lib/objectmodel";
+import {CellValue, DataItem, DataItemType} from "./objectmodel";
 
 let Yes = CellValue.Yes;
 let No = CellValue.No;

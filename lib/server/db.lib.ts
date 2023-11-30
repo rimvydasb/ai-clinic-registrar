@@ -1,4 +1,4 @@
-import {logger} from "./logger.lib";
+import {logger} from "../logger.lib";
 import {fromEnv} from "@aws-sdk/credential-provider-env";
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {PutCommand} from "@aws-sdk/lib-dynamodb"; // Import PutCommand for DynamoDB operations

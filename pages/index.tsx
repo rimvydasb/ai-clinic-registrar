@@ -4,10 +4,11 @@ import {green} from '@mui/material/colors';
 import DataTable from "./components/registration";
 import styles from "./index.module.css";
 import HealingIcon from '@mui/icons-material/Healing';
-import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
-import {APIEndpoint, callAgent} from "../lib/client.lib";
-import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../configuration/configuration";
-import {isValidArray} from "../lib/server.lib";
+import {AgentRequest, ChatMessage, DataItem} from "../lib/rules/objectmodel";
+import {APIEndpoint, callAgent} from "../lib/client/client.lib";
+import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../lib/rules/configuration";
+
+import {isValidArray} from "../lib/client/until";
 
 const ChatApp: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([

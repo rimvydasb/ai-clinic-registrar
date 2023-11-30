@@ -1,5 +1,5 @@
 import {NextApiRequest, NextApiResponse} from "next";
-import {AgentRequest, ChatMessage, DataItem} from "../lib/objectmodel";
+import {AgentRequest, ChatMessage, DataItem} from "../lib/rules/objectmodel";
 
 
 export function mockResponse() {

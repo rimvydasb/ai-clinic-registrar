@@ -1,4 +1,4 @@
-import {AgentRequest} from "./objectmodel";
+import {AgentRequest} from "../rules/objectmodel";
 
 export enum APIEndpoint {
     Questioner = "/api/questioner",

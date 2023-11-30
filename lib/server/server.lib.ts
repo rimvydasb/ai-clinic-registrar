@@ -1,8 +1,9 @@
 import {NextApiRequest, NextApiResponse} from 'next';
-import {AgentRequest} from "./objectmodel";
-import {logger} from "./logger.lib";
+import {AgentRequest} from "../rules/objectmodel";
+import {logger} from "../logger.lib";
 import {SimpleOpenAI, SimpleOpenAIMock} from "./openai.lib";
 import {ClientOptions} from "openai";
+import {isValidArray} from "../client/until";
 
 export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
 
@@ -20,19 +21,6 @@ export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
 
         return new SimpleOpenAI(configuration);
     }
-}
-
-export function isValidArray(object: any, label: string = null) {
-
-    if (object === null || !Array.isArray(object)) {
-        if (logger)
-            logger.error("Wrong " + label + ": " + JSON.stringify(object));
-        else
-            console.error("ERROR: Wrong " + label + ": " + JSON.stringify(object));
-
-        return false;
-    }
-    return true;
 }
 
 /**
@@ -76,3 +64,17 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
         }
     };
 }
+
+export function lazy<T>(initializer: () => T): () => T {
+    let value: T;
+    let hasValue = false;
+
+    return () => {
+        if (!hasValue) {
+            value = initializer();
+            hasValue = true;
+        }
+        return value;
+    };
+}
+

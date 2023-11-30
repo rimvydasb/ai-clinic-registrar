@@ -1,8 +1,8 @@
-import questionerHandler from '../pages/api/questioner';
+import questionerHandler from '../lib/server/questioner';
 import {mockPostRequest, mockResponse} from "./utils";
-import {AgentRequest, ChatMessage, DataItem, DataItemType} from "../lib/objectmodel";
+import {AgentRequest, ChatMessage, DataItem, DataItemType} from "../lib/rules/objectmodel";
 import dotenv from "dotenv";
-import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../configuration/configuration";
+import {AGENT_GREETING, CLIENT_SYMPTOMS_DATA, REGISTRATION_CLIENT_DATA} from "../lib/rules/configuration";
 
 dotenv.config();
 

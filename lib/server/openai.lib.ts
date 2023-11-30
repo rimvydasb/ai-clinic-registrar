@@ -1,6 +1,6 @@
 import OpenAI, {ClientOptions} from "openai";
-import {logger} from "./logger.lib";
-import {ChatMessage, DataItem, DataItemType} from "./objectmodel";
+import {logger} from "../logger.lib";
+import {ChatMessage, DataItem, DataItemType} from "../rules/objectmodel";
 import {
     ChatCompletionCreateParams,
     ChatCompletionMessage,
@@ -90,7 +90,13 @@ export class SimpleOpenAI {
             }
         }
 
-        logger.debug("createChatCompletion: " + JSON.stringify(requestMessages));
+        if (hasFunctions) {
+            logger.debug("Functions: " + JSON.stringify(functions, null, 2));
+        }
+
+        logger.debug("----------------------------------------------");
+        logger.debug("createChatCompletion: " + JSON.stringify(requestMessages, null, 2));
+        logger.debug("----------------------------------------------");
 
         try {
             const completion = await this.openai.chat.completions.create({
@@ -98,17 +104,19 @@ export class SimpleOpenAI {
                 messages: requestMessages,
                 functions: (hasFunctions) ? functions : undefined,
                 temperature: (hasFunctions) ? 0.0 : 0.2,
-                max_tokens: 150,
+                max_tokens: 70,
                 top_p: 1,
                 presence_penalty: 0,
                 frequency_penalty: 0,
             });
 
+            logger.debug("createChatCompletion RESULT: " + JSON.stringify(completion, null, 2));
+            logger.debug("----------------------------------------------");
             return completion.choices[0].message;
         } catch (e) {
             const error = new Error(`Error in createChatCompletion: ${JSON.stringify(e)}`)
             logger.error(error.message);
-            return Promise.reject(error);
+            return Promise.resolve(error);
         }
     }
 
