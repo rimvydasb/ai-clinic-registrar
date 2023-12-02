@@ -1,6 +1,6 @@
 import {NextApiRequest} from 'next';
-import {AgentRequest, ChatMessage, DataItem} from "../../lib/rules/objectmodel";
-import {createHandler, getNextOpenAI, parseRequest} from "../../lib/server/server.lib";
+import {AgentRequest, AgentResponse, ChatMessage} from "../../lib/rules/objectmodel";
+import {createHandler, parseRequest} from "../../lib/server/server.lib";
 import {storeData} from "../../lib/server/db.lib";
 import {REGISTRATION_TABLE_NAME} from "../../lib/rules/configuration";
 import {AgentLibrary} from "../../lib/rules/library";
@@ -9,63 +9,28 @@ import {logger} from "../../lib/logger.lib";
 export async function questionerRequest(nextApiRequest: NextApiRequest): Promise<AgentRequest> {
 
     // parsing request to the object model
-    let request : AgentRequest = parseRequest(nextApiRequest);
-
-    // initializing OpenAI API
-    let nextOpenAi = getNextOpenAI(request);
+    let request: AgentRequest = parseRequest(nextApiRequest);
 
     // initializing library with all business rules
     let library = new AgentLibrary(request);
 
-    /**
-     * Business logic:
-     */
+    try {
+        let agentResponse = await library.agentResponse();
 
-    let initialAgentResponse = AgentLibrary.decideInitialAgentResponse(request);
-
-    if (initialAgentResponse !== false) {
-        request.nextMessage = new ChatMessage("assistant", initialAgentResponse as string);
-        return request;
-    }
-
-    if (library.dataToExtract().length > 0) {
-        // maximum 4 messages will be used for a data extraction
-        let lastMessages = request.messages.slice(-4);
-        let extractedData = await nextOpenAi.extractDataFromChat(lastMessages, library.dataToExtract());
-        if (extractedData instanceof Error) {
-            request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
-            logger.warn("Terminating conversation");
-            return request;
-        }
-    }
-
-    let nextResponse = AgentLibrary.decideNextAgentResponse(request);
-
-    if (nextResponse.printVoucher) {
-        request.voucherId = await storeRegistrationData(request);
-    }
-
-    // the next agent message that will be displayed to the user
-    if (nextResponse.message) {
-        request.nextMessage = new ChatMessage("assistant", nextResponse.message);
-        return request;
-    }
-
-    // if prompt is defined, it means that agent needs to ask a question
-    else if (nextResponse.prompt) {
-
-        // @Todo: it is not necessary to know messages to generate goodbye
-        let nextMessage = await nextOpenAi.createChatCompletion(request.messages, [], nextResponse.prompt);
-
-        if (nextMessage instanceof Error) {
-            request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
-            request.errorMessage = nextMessage.message;
-        } else {
-            request.nextMessage = new ChatMessage(nextMessage.role, nextMessage.content);
+        if (agentResponse.printVoucher) {
+            request.voucherId = await storeRegistrationData(request);
         }
 
-        return request;
+        request.symptomsData = await library.updatedSymptomsData();
+        request.userData = await library.updatedUserData();
+        request.nextMessage = new ChatMessage("assistant", agentResponse.message);
+    } catch (error: any) {
+        logger.error("caught in clause: " + error);
+        request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
+        request.errorMessage = error.message;
     }
+
+    return request;
 }
 
 function storeRegistrationData(request: AgentRequest) {

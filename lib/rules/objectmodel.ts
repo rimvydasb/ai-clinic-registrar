@@ -34,45 +34,68 @@ export enum DataItemType {
     Boolean = 'boolean',
 }
 
-// @Todo: refactor to proper plain class, remove methods
 export class DataItem {
-    constructor(
-        public field: string,
-        public label: string,
-        public enumeration: string[] = null,
-        public type: DataItemType = DataItemType.String,
-        public value: string | null = null
-    ) {
+
+    /**
+     * The unique identifier of the data item
+     */
+    field: string;
+
+    /**
+     * The question or clarification to understand the data item
+     */
+    label: string;
+
+    /**
+     * Enumeration of possible values, usually for boolean data items
+     */
+    enumeration: string[] = null;
+
+    /**
+     * The type of the data item
+     */
+    type: DataItemType = DataItemType.String;
+
+    /**
+     * The value collected from the user
+     */
+    value: string = null;
+
+    /**
+     * Optional grouping of data items
+     */
+    category: string = null;
+
+    constructor(field: string, label: string) {
+        this.field = field;
+        this.label = label;
     }
 
-    static countValues(items: DataItem[], value: string): number {
-        return items
-            .filter(item => item.value !== null)
-            .filter(item => item.value.toLowerCase() === value.toLowerCase())
-            .length;
+    static empty(field: string, label: string): DataItem {
+        return new DataItem(field, label);
     }
 
-    public toProperty() {
-        let property = {};
+    static emptyBoolean(field: string, label: string): DataItem {
+        const result = new DataItem(field, label);
+        result.type = DataItemType.Boolean;
+        return result;
+    }
 
-        if (this.type == DataItemType.Boolean) {
-            property = {
-                "type": "string",
-                "enum": ["yes", "no", "unknown"],
-                "description": this.label
-            }
-        } else {
-            property = {
-                "type": this.type.toString(),
-                "description": this.label
-            }
+    static text(field: string, label: string, value: string): DataItem {
+        const result = new DataItem(field, label);
+        result.value = value;
+        return result;
+    }
 
-            if (this.enumeration) {
-                property["enum"] = this.enumeration;
-            }
-        }
+    static boolean(field: string, label: string, value: boolean): DataItem {
+        const result = new DataItem(field, label);
+        result.type = DataItemType.Boolean;
+        result.value = value ? "true" : "false";
+        return result;
+    }
 
-        return property;
+    toDebugString(): string {
+        return `${this.field} (${this.label}) = ${this.value}`;
     }
 }
 
@@ -117,5 +140,40 @@ export class AgentRequest {
 
     static fromJson(json: any): AgentRequest {
         return Object.assign(new AgentRequest(), json);
+    }
+}
+
+export class AgentResponse {
+    /**
+     * The message to be displayed to the user
+     */
+    readonly message: string = null;
+
+    /**
+     * If true, the voucher id is generated and sent to the user
+     */
+    readonly printVoucher: boolean = false;
+
+    /**
+     * The technical error produced by the server
+     */
+    readonly systemError = null;
+
+    constructor(message: string, printVoucher: boolean, systemError = null) {
+        this.message = message;
+        this.printVoucher = printVoucher;
+        this.systemError = systemError;
+    }
+
+    static message(message: string) {
+        return new AgentResponse(message, false);
+    }
+
+    static printVoucher(message: string) {
+        return new AgentResponse(message, true);
+    }
+
+    static systemError(message: string, systemError: string) {
+        return new AgentResponse(message, false, systemError);
     }
 }

@@ -1,7 +1,8 @@
-import {AgentRequest, DataItem} from "./objectmodel";
-import {lazy} from "../server/server.lib";
+import {AgentRequest, AgentResponse, DataItem} from "./objectmodel";
+import {derivation, serviceCall} from "../server/server.lib";
 import {AGENT_GREETING} from "./configuration";
-
+import {ChatCompletionMessage} from "openai/resources";
+import {logger} from "../logger.lib";
 
 export class AgentLibrary {
 
@@ -11,56 +12,75 @@ export class AgentLibrary {
         this.inputData = inputData;
     }
 
-    public readonly dataToExtract = lazy(() => {
-        return this.inputData.userData.concat(this.inputData.symptomsData)
-            .filter(value => value.value == null);
+    // "I'm sorry, I didn't understand you. Please repeat."
+    updatedAllDataItems = serviceCall(async (service) => {
+        const userData = this.inputData.userData.map(value => {
+            value.category = "userData";
+            return value;
+        });
+        const symptomsData = this.inputData.symptomsData.map(value => {
+            value.category = "symptomsData";
+            return value;
+        });
+        let lastMessages = this.inputData.messages.slice(-4);
+        return service.extractDataFromChat(lastMessages, userData.concat(symptomsData));
     });
 
-    static decideInitialAgentResponse(inputData: AgentRequest): string | boolean {
+    updatedSymptomsData = derivation(async () => {
+        return (await this.updatedAllDataItems()).filter(value => value.category == "symptomsData");
+    });
 
-        if (inputData.messages.length == 0) {
-            return AGENT_GREETING;
+    updatedUserData = derivation(async () => {
+        return (await this.updatedAllDataItems()).filter(value => value.category == "userData");
+    });
+
+    agentResponse = derivation(async (): Promise<AgentResponse> => {
+
+        if (this.inputData.messages.length == 0) {
+            return AgentResponse.message(AGENT_GREETING);
         }
 
-        if (inputData.errorMessage) {
-            return `Apologies, but I have unexpected problems. Please reach human with this message: ${inputData.errorMessage}`;
+        if (this.inputData.errorMessage) {
+            return AgentResponse.message(`Apologies, but I have unexpected problems. Please reach human with this message: ${this.inputData.errorMessage}`);
         }
 
-        if (inputData.voucherId) {
-            return `You already have a voucher with an id: ${inputData.voucherId}. Please reach human if you need to change it.`;
+        if (this.inputData.voucherId) {
+            return AgentResponse.message(`You already have a voucher with an id: ${this.inputData.voucherId}. Please reach human if you need to change it.`);
         }
 
-        return false;
-    }
+        return this.updatedDataBasedResponse();
+    });
 
-    static decideNextAgentResponse(inputData: AgentRequest): { prompt: string, printVoucher: boolean, message: string } {
-        let systemPrompt: string, message: string;
-        let printVoucher = false;
+    updatedDataBasedResponse = serviceCall(async (service): Promise<AgentResponse> => {
 
-        if (inputData.voucherId || inputData.errorMessage) {
-            message = this.decideInitialAgentResponse(inputData) as string;
-        }
+        let message: ChatCompletionMessage = null;
 
         // First goal is to identify any symptom before asking for name and telephone
-        else if (this.countFilled(inputData.symptomsData) == 0) {
-            systemPrompt = this.generateQuestionerPrompt(inputData.symptomsData);
+        if ((await this.updatedSymptomsData()).every(item => item.value == null)) {
+            logger.debug("Symptoms data is empty");
+            const systemPrompt = this.generateQuestionerPrompt(this.inputData.symptomsData);
+            message = (await service.createChatCompletion(this.inputData.messages, [], systemPrompt));
         }
 
-        // Second goal is to identify name, telephone or other data
-        else if (this.countMissing(inputData.userData) > 0) {
-            systemPrompt = this.generateQuestionerPrompt(inputData.userData);
+        // Second goal is to identify all user data
+        else if ((await this.updatedUserData()).some(item => item.value == null)) {
+            logger.debug("User data is empty");
+            const systemPrompt = this.generateQuestionerPrompt(this.inputData.userData);
+            message = (await service.createChatCompletion(this.inputData.messages, [], systemPrompt));
+        }
+
+        if (message) {
+            return AgentResponse.message(message.content);
         }
 
         // if all the data is collected, generate a voucher id
-        else {
-            systemPrompt = this.generateGoodbyePrompt(inputData.userData);
-            printVoucher = true;
-        }
+        const systemPrompt = this.generateGoodbyePrompt(this.inputData.userData);
+        message = (await service.createChatCompletion(this.inputData.messages, [], systemPrompt));
 
-        return {prompt: systemPrompt, printVoucher: printVoucher, message: message};
-    }
+        return AgentResponse.printVoucher(message.content);
+    });
 
-    static generateQuestionerPrompt(stateData: DataItem[]) {
+    generateQuestionerPrompt(stateData: DataItem[]) {
 
         let missingData = stateData
             .filter(value => value.value == null)
@@ -81,7 +101,7 @@ export class AgentLibrary {
             + `Be polite and strictly follow the goal is to get information.`;
     }
 
-    static generateGoodbyePrompt(stateData: DataItem[]) {
+    generateGoodbyePrompt(stateData: DataItem[]) {
 
         let labelsString = stateData
             .filter(value => value.value != null)
@@ -92,13 +112,5 @@ export class AgentLibrary {
             + `The user is calling to schedule an appointment. `
             + `You have one goal: tell user that his doctor will reach him. Optionally tell user his information: ${labelsString}. `
             + `Do not ask other questions. Do not answer any questions. Do not advise. Say goodbye.`;
-    }
-
-    static countMissing(stateData: DataItem[]): number {
-        return stateData.filter(value => value.value == null).length;
-    }
-
-    static countFilled(stateData: DataItem[]): number {
-        return stateData.filter(value => value.value != null).length;
     }
 }

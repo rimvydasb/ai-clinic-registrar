@@ -1,4 +1,4 @@
-import {CellValue, DataItem, DataItemType} from "./objectmodel";
+import {CellValue, DataItem} from "./objectmodel";
 
 let Yes = CellValue.Yes;
 let No = CellValue.No;
@@ -9,15 +9,15 @@ export const REGISTRATION_TABLE_NAME: string = "ai-clinic-registrar-table";
 export const AGENT_GREETING: string = "Hello, I'm the doctor's assistant. How can I help you?";
 
 export const REGISTRATION_CLIENT_DATA: DataItem[] = [
-    new DataItem("name", "user's name"),
-    new DataItem("telephone", "user's telephone number"),
+    DataItem.empty("name", "user's name"),
+    DataItem.empty("telephone", "user's telephone number"),
 ];
 
 export const CLIENT_SYMPTOMS_DATA: DataItem[] = [
-    new DataItem("pain", "does user feel pain?", null, DataItemType.Boolean),
-    new DataItem("weakness", "does user feel dizziness, fainting or weakness?", null, DataItemType.Boolean),
-    new DataItem("nausea", "does user feel nausea or wants to vomit?", null, DataItemType.Boolean),
-    new DataItem("runningBlood", "does user see blood or have running blood?", null, DataItemType.Boolean),
+    DataItem.emptyBoolean("pain", "does user feel pain?"),
+    DataItem.emptyBoolean("weakness", "does user feel dizziness, fainting or weakness?"),
+    DataItem.emptyBoolean("nausea", "does user feel nausea or wants to vomit?"),
+    DataItem.emptyBoolean("runningBlood", "does user see blood or have running blood?"),
 ];
 
 export const PRIORITY_DECISION_TABLE = [

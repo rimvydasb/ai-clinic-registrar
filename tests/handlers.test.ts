@@ -1,4 +1,4 @@
-import questionerHandler from '../lib/server/questioner';
+import questionerHandler from '../pages/api/questioner';
 import {mockPostRequest, mockResponse} from "./utils";
 import {AgentRequest, ChatMessage, DataItem, DataItemType} from "../lib/rules/objectmodel";
 import dotenv from "dotenv";
@@ -29,8 +29,8 @@ describe('Live handlers test', () => {
         expect(response.status).toHaveBeenCalledWith(200);
         expect(response.json).toHaveBeenCalledWith({
             userData: [
-                new DataItem("name", "user's name", null, DataItemType.String, "John"),
-                new DataItem("telephone", "user's telephone number"),
+                DataItem.text("name", "user's name", "John"),
+                DataItem.empty("telephone", "user's telephone number"),
             ],
             symptomsData: CLIENT_SYMPTOMS_DATA,
             nextMessage: new ChatMessage("assistant", "I understood you. Goodbye."),
@@ -58,8 +58,8 @@ describe('Live handlers test', () => {
         expect(response.json).toHaveBeenCalledWith({
             result: {
                 stateData: [
-                    new DataItem("name", "user's name", null, DataItemType.String, "Don McLean"),
-                    new DataItem("telephone", "user's telephone number"),
+                    DataItem.text("name", "user's name", "Don McLean"),
+                    DataItem.empty("telephone", "user's telephone number"),
                 ],
                 symptoms: CLIENT_SYMPTOMS_DATA,
                 nextMessage: {
@@ -70,7 +70,7 @@ describe('Live handlers test', () => {
                 voucherId: null,
             }
         });
-    },30000);
+    }, 30000);
 
     test('live test: ask for symptomsData', async () => {
 
@@ -94,11 +94,11 @@ describe('Live handlers test', () => {
         expect(res.json).toHaveBeenCalledWith({
             result: {
                 stateData: [
-                    new DataItem("name", "user's name", null, DataItemType.String, null), // taking just last two messages
-                    new DataItem("telephone", "user's telephone number"),
+                    DataItem.empty("name", "user's name"), // taking just last two messages
+                    DataItem.empty("telephone", "user's telephone number"),
                 ],
                 symptoms: expect.arrayContaining([
-                    new DataItem("pain", "does user feel pain?", null, DataItemType.Boolean, "true"),
+                    DataItem.boolean("pain", "does user feel pain?", true),
                 ]),
                 nextMessage: {
                     content: expect.any(String),
@@ -130,8 +130,8 @@ describe('Live handlers test', () => {
         expect(res.json).toHaveBeenCalledWith({
             result: {
                 stateData: [
-                    new DataItem("name", "user's name", null, DataItemType.String, "Margaret Teacher"),
-                    new DataItem("telephone", "user's telephone number", null, DataItemType.String, "+38472518569"),
+                    DataItem.text("name", "user's name", "Margaret Teacher"),
+                    DataItem.text("telephone", "user's telephone number", "+38472518569"),
                 ],
                 symptoms: CLIENT_SYMPTOMS_DATA,
                 nextMessage: {
@@ -144,8 +144,6 @@ describe('Live handlers test', () => {
         });
     }, 30000);
 });
-
-
 
 
 // test('function call test', async () => {

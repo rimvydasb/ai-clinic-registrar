@@ -33,7 +33,7 @@ export async function storeData(tableName: string, data: any): Promise<string> {
     };
 
     try {
-        await ddbClient.send(new PutCommand(params));
+        //await ddbClient.send(new PutCommand(params));
         logger.info('Data stored successfully');
     } catch (err) {
         logger.error('Error storing data:', err);

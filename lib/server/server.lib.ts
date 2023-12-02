@@ -1,16 +1,15 @@
 import {NextApiRequest, NextApiResponse} from 'next';
 import {AgentRequest} from "../rules/objectmodel";
 import {logger} from "../logger.lib";
-import {SimpleOpenAI, SimpleOpenAIMock} from "./openai.lib";
+import {SimpleOpenAI} from "./openai.lib";
 import {ClientOptions} from "openai";
 import {isValidArray} from "../client/until";
 
-export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
+let nextOpenAI: SimpleOpenAI | null = null;
 
-    if (request.isMock) {
-        return new SimpleOpenAIMock();
-    } else {
+function getNextOpenAI(): SimpleOpenAI {
 
+    if (!nextOpenAI) {
         let configuration: ClientOptions = {
             apiKey: process.env.OPENAI_API_KEY,
         };
@@ -20,6 +19,8 @@ export function getNextOpenAI(request: AgentRequest): SimpleOpenAI {
         }
 
         return new SimpleOpenAI(configuration);
+    } else {
+        return nextOpenAI;
     }
 }
 
@@ -65,13 +66,31 @@ export function createHandler(requestFunction: HandlerRequestFunction, logMessag
     };
 }
 
-export function lazy<T>(initializer: () => T): () => T {
+export function derivation<T>(initializer: () => T): () => T {
     let value: T;
     let hasValue = false;
 
     return () => {
         if (!hasValue) {
             value = initializer();
+            hasValue = true;
+        }
+        return value;
+    };
+}
+
+export function serviceCall<T>(initializer: (service: SimpleOpenAI) => Promise<T | Error>): () => Promise<T> {
+    let value: Promise<T>;
+    let hasValue = false;
+
+    return () => {
+        if (!hasValue) {
+            const response = initializer(getNextOpenAI());
+            if (response instanceof Error) {
+                value = Promise.reject(response);
+            } else {
+                value = response as Promise<T>;
+            }
             hasValue = true;
         }
         return value;

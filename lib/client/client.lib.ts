@@ -16,11 +16,9 @@ export async function callAgent(endpoint: APIEndpoint, request: AgentRequest): P
     console.debug("Response: " + JSON.stringify(response));
 
     const data: AgentRequest = await response.json();
-    if (response.status !== 200) {
+    if (data.errorMessage) {
         console.error(data.errorMessage);
     }
-
-    console.debug("Response data: " + JSON.stringify(data));
 
     return data;
 }
