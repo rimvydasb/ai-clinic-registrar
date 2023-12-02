@@ -12,7 +12,6 @@ export class AgentLibrary {
         this.inputData = inputData;
     }
 
-    // "I'm sorry, I didn't understand you. Please repeat."
     updatedAllDataItems = serviceCall(async (service) => {
         const userData = this.inputData.userData.map(value => {
             value.category = "userData";

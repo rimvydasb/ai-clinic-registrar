@@ -1,12 +1,12 @@
 import {NextApiRequest} from 'next';
-import {AgentRequest, AgentResponse, ChatMessage} from "../../lib/rules/objectmodel";
+import {AgentRequest, ChatMessage} from "../../lib/rules/objectmodel";
 import {createHandler, parseRequest} from "../../lib/server/server.lib";
 import {storeData} from "../../lib/server/db.lib";
-import {REGISTRATION_TABLE_NAME} from "../../lib/rules/configuration";
+import {AGENT_APOLOGY, REGISTRATION_TABLE_NAME} from "../../lib/rules/configuration";
 import {AgentLibrary} from "../../lib/rules/library";
 import {logger} from "../../lib/logger.lib";
 
-export async function questionerRequest(nextApiRequest: NextApiRequest): Promise<AgentRequest> {
+export async function agentDecisionService(nextApiRequest: NextApiRequest): Promise<AgentRequest> {
 
     // parsing request to the object model
     let request: AgentRequest = parseRequest(nextApiRequest);
@@ -26,7 +26,7 @@ export async function questionerRequest(nextApiRequest: NextApiRequest): Promise
         request.nextMessage = new ChatMessage("assistant", agentResponse.message);
     } catch (error: any) {
         logger.error("caught in clause: " + error);
-        request.nextMessage = new ChatMessage("assistant", "I'm sorry, I didn't understand you. Please repeat.");
+        request.nextMessage = new ChatMessage("assistant", AGENT_APOLOGY);
         request.errorMessage = error.message;
     }
 
@@ -37,4 +37,4 @@ function storeRegistrationData(request: AgentRequest) {
     return storeData(REGISTRATION_TABLE_NAME, request);
 }
 
-export default createHandler(questionerRequest, "Calling Questioner");
+export default createHandler(agentDecisionService, "Calling Agent Decision Service");

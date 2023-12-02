@@ -7,6 +7,7 @@ let any = CellValue.Any;
 export const REGISTRATION_TABLE_NAME: string = "ai-clinic-registrar-table";
 
 export const AGENT_GREETING: string = "Hello, I'm the doctor's assistant. How can I help you?";
+export const AGENT_APOLOGY: string = "I'm sorry, I didn't understand you. Please repeat.";
 
 export const REGISTRATION_CLIENT_DATA: DataItem[] = [
     DataItem.empty("name", "user's name"),
